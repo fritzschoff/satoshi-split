@@ -1,19 +1,68 @@
-type Account {
-  # id is the address of the account
+type Split {
   id: ID!
-  # approvals are a list of approvals that this account has given
-  approvals: [Approval!]! @derivedFrom(field: "owner")
-  # account balance of tokens
-  balance: BigInt!
+  creator: String!
+  members: [String!]!
+  defaultToken: String!
+  createdAt: BigInt!
+  totalDebt: BigInt!
+  spendings: [Spending!]! @derivedFrom(field: "split")
+  debts: [Debt!]! @derivedFrom(field: "split")
 }
 
-type Approval {
-  # id is the owner address and spender address [owner-spender]
+type Spending {
   id: ID!
-  # amount is the amount of tokens approved
+  split: Split!
+  spendingId: BigInt!
+  title: String!
+  payer: String!
   amount: BigInt!
-  # owner is the account that approved the tokens
-  owner: Account!
-  # spender is the account that is approved to spend the tokens
-  spender: Account!
+  forWho: [String!]!
+  timestamp: BigInt!
+  token: String!
+  txHash: String!
+}
+
+type Debt {
+  id: ID!
+  split: Split!
+  debtor: String!
+  creditor: String!
+  amount: BigInt!
+  token: String!
+  isPaid: Boolean!
+  paidAt: BigInt
+  txHash: String
+  payments: [DebtPayment!]! @derivedFrom(field: "debt")
+}
+
+type DebtPayment {
+  id: ID!
+  debt: Debt!
+  amount: BigInt!
+  timestamp: BigInt!
+  txHash: String!
+}
+
+type UserActivity {
+  id: ID!
+  totalSpent: BigInt!
+  totalReceived: BigInt!
+  totalGasSpent: BigInt!
+  transactionCount: Int!
+  splits: [String!]!
+  transactions: [Transaction!]! @derivedFrom(field: "from")
+}
+
+type Transaction {
+  id: ID!
+  from: UserActivity!
+  to: String!
+  amount: BigInt!
+  token: String!
+  gasUsed: BigInt!
+  gasPrice: BigInt!
+  timestamp: BigInt!
+  status: String!
+  blockNumber: BigInt!
+  txType: String!
 }
