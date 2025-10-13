@@ -182,15 +182,12 @@ contract SplitManager {
         Split storage split = splits[splitId];
         address token = split.defaultToken;
         
-        // If forWho is empty, include all members
         address[] memory participants = forWho.length == 0 ? split.members : forWho;
         
-        // Validate all participants are members
         for (uint256 i = 0; i < participants.length; i++) {
             require(_isMember(splitId, participants[i]), "Participant not a member");
         }
         
-        // Create spending record
         Spending memory newSpending = Spending({
             id: split.spendingCounter,
             title: title,
@@ -204,27 +201,22 @@ contract SplitManager {
         splitSpendings[splitId].push(newSpending);
         split.spendingCounter++;
         
-        // Calculate and update debts (equal split among participants)
         uint256 sharePerPerson = amount / participants.length;
         
         for (uint256 i = 0; i < participants.length; i++) {
             address participant = participants[i];
             
-            // Skip if participant is the payer
             if (participant == msg.sender) continue;
             
-            // Update or create debt
             Debt storage debt = debts[splitId][participant][msg.sender];
             
             if (debt.debtor == address(0)) {
-                // Create new debt
                 debt.debtor = participant;
                 debt.creditor = msg.sender;
                 debt.token = token;
                 debt.amount = sharePerPerson;
                 debt.isPaid = false;
             } else {
-                // Add to existing debt
                 debt.amount += sharePerPerson;
             }
             
@@ -252,14 +244,11 @@ contract SplitManager {
         
         address token = splits[splitId].defaultToken;
         
-        // Handle payment
         if (token == address(0)) {
-            // ETH payment
             require(msg.value == amount, "Incorrect ETH amount");
             (bool success, ) = creditor.call{value: amount}("");
             require(success, "ETH transfer failed");
         } else {
-            // ERC20 payment
             require(msg.value == 0, "ETH not accepted for token payments");
             IERC20(token).safeTransferFrom(msg.sender, creditor, amount);
         }

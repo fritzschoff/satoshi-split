@@ -1,9 +1,8 @@
 {
-  "name": "hardhat",
+  "name": "satoshi-split-hardhat",
   "version": "1.0.0",
   "type": "module",
   "devDependencies": {
-    "@nomicfoundation/hardhat-ignition": "^3.0.3",
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
     "@nomicfoundation/hardhat-verify": "^3.0.3",
     "@types/chai": "^5.2.2",

@@ -1,62 +1,70 @@
-import assert from "assert";
-import { TestHelpers, Account } from "generated";
-const { MockDb, ERC20, Addresses } = TestHelpers;
+import assert from 'assert';
+import { TestHelpers } from 'generated';
+const { MockDb, SplitManager, Addresses } = TestHelpers;
 
-describe("Transfers", () => {
-  it("Transfer subtracts the from account balance and adds to the to account balance", async () => {
-    //Instantiate a mock DB
+describe('SplitManager', () => {
+  it('SplitCreated should create a Split entity with correct data', async () => {
+    // Instantiate a mock DB
     const mockDbEmpty = MockDb.createMockDb();
 
-    //Get mock addresses from helpers
-    const userAddress1 = Addresses.mockAddresses[0];
-    const userAddress2 = Addresses.mockAddresses[1];
+    // Get mock addresses from helpers
+    const creatorAddress = Addresses.mockAddresses[0];
+    const member1 = Addresses.mockAddresses[1];
+    const member2 = Addresses.mockAddresses[2];
+    const tokenAddress = Addresses.mockAddresses[3];
 
-    //Make a mock entity to set the initial state of the mock db
-    const mockAccountEntity: Account = {
-      id: userAddress1,
-      balance: 5n,
-    };
-
-    //Set an initial state for the user
-    //Note: set and delete functions do not mutate the mockDb, they return a new
-    //mockDb with with modified state
-    const mockDb = mockDbEmpty.entities.Account.set(mockAccountEntity);
-
-    //Create a mock Transfer event from userAddress1 to userAddress2
-    const mockTransfer = ERC20.Transfer.createMockEvent({
-      from: userAddress1,
-      to: userAddress2,
-      value: 3n,
+    // Create a mock SplitCreated event
+    const mockSplitCreated = SplitManager.SplitCreated.createMockEvent({
+      splitId: 1n,
+      creator: creatorAddress,
+      initialMembers: [member1, member2],
+      defaultToken: tokenAddress,
     });
 
-    //Process the mockEvent
-    //Note: processEvent functions do not mutate the mockDb, they return a new
-    //mockDb with with modified state
-    const mockDbAfterTransfer = await ERC20.Transfer.processEvent({
-      event: mockTransfer,
-      mockDb,
+    // Process the mockEvent
+    const mockDbAfterCreate = await SplitManager.SplitCreated.processEvent({
+      event: mockSplitCreated,
+      mockDb: mockDbEmpty,
     });
 
-    //Get the balance of userAddress1 after the transfer
-    const account1Balance =
-      mockDbAfterTransfer.entities.Account.get(userAddress1)?.balance;
+    // Get the created split
+    const split = mockDbAfterCreate.entities.Split.get('1');
 
-    //Assert the expected balance
+    // Assert the split was created correctly
+    assert.notEqual(split, undefined, 'Split should be created');
+    assert.equal(split?.id, '1', 'Split ID should be 1');
     assert.equal(
-      2n,
-      account1Balance,
-      "Should have subtracted transfer amount 3 from userAddress1 balance 5",
+      split?.creator.toLowerCase(),
+      creatorAddress.toLowerCase(),
+      'Creator should match'
+    );
+    assert.equal(split?.totalDebt, 0n, 'Initial debt should be 0');
+    assert.ok(
+      split?.members.includes(creatorAddress.toLowerCase()),
+      'Creator should be in members'
+    );
+    assert.ok(
+      split?.members.includes(member1.toLowerCase()),
+      'Member1 should be in members'
+    );
+    assert.ok(
+      split?.members.includes(member2.toLowerCase()),
+      'Member2 should be in members'
     );
 
-    //Get the balance of userAddress2 after the transfer
-    const account2Balance =
-      mockDbAfterTransfer.entities.Account.get(userAddress2)?.balance;
-
-    //Assert the expected balance
+    // Check user activity was created for creator
+    const creatorActivity = mockDbAfterCreate.entities.UserActivity.get(
+      creatorAddress.toLowerCase()
+    );
+    assert.notEqual(
+      creatorActivity,
+      undefined,
+      'Creator activity should be created'
+    );
     assert.equal(
-      3n,
-      account2Balance,
-      "Should have added transfer amount 3 to userAddress2 balance 0",
+      creatorActivity?.transactionCount,
+      1,
+      'Transaction count should be 1'
     );
   });
 });

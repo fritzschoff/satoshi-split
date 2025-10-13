@@ -2,20 +2,23 @@
 name: satoshi-split-indexer
 description: Multi-chain expense splitting indexer for SatoshiSplit
 
+contracts:
+  - name: SplitManager
+    handler: src/EventHandlers.ts
+    events:
+      - event: 'SplitCreated(uint256 indexed splitId, address indexed creator, address[] initialMembers, address defaultToken)'
+      - event: 'MemberAdded(uint256 indexed splitId, address indexed member)'
+      - event: 'MemberRemoved(uint256 indexed splitId, address indexed member)'
+      - event: 'SpendingAdded(uint256 indexed splitId, uint256 spendingId, string title, address indexed payer, uint256 amount, address[] forWho, address token)'
+      - event: 'DebtPaid(uint256 indexed splitId, address indexed debtor, address indexed creditor, uint256 amount, address token)'
+
 networks:
   - id: 11155111
-    start_block: 0
+    start_block: 9405553
     contracts:
       - name: SplitManager
         address:
-          - '0x0000000000000000000000000000000000000000'
-        handler: src/EventHandlers.ts
-        events:
-          - event: 'SplitCreated(uint256 indexed splitId, address indexed creator, address[] initialMembers, address defaultToken)'
-          - event: 'MemberAdded(uint256 indexed splitId, address indexed member)'
-          - event: 'MemberRemoved(uint256 indexed splitId, address indexed member)'
-          - event: 'SpendingAdded(uint256 indexed splitId, uint256 spendingId, string title, address indexed payer, uint256 amount, address[] forWho, address token)'
-          - event: 'DebtPaid(uint256 indexed splitId, address indexed debtor, address indexed creditor, uint256 amount, address token)'
+          - '0x3dA416c0B71a28044003d8AA6de6584822F045f9'
 
 unordered_multichain_mode: false
 preload_handlers: true
@@ -28,6 +31,3 @@ field_selection:
     - 'hash'
     - 'transactionIndex'
     - 'gasPrice'
-  block_fields:
-    - 'timestamp'
-    - 'number'

@@ -1,16 +1,16 @@
-import {
-  SplitManager_SplitCreated_eventArgs,
-  SplitManager_MemberAdded_eventArgs,
-  SplitManager_MemberRemoved_eventArgs,
-  SplitManager_SpendingAdded_eventArgs,
-  SplitManager_DebtPaid_eventArgs,
-} from '../generated/src/Types.gen';
+import { SplitManager } from '../generated/src/Handlers.gen';
 
-// Helper function to get or create UserActivity
 async function getOrCreateUserActivity(
   context: any,
   address: string
-): Promise<any> {
+): Promise<{
+  id: string;
+  totalSpent: bigint;
+  totalReceived: bigint;
+  totalGasSpent: bigint;
+  transactionCount: number;
+  splits: string[];
+}> {
   let userActivity = await context.UserActivity.get(address.toLowerCase());
 
   if (!userActivity) {
@@ -27,7 +27,6 @@ async function getOrCreateUserActivity(
   return userActivity;
 }
 
-// Helper function to add split to user's split list if not already there
 function addSplitToUser(splits: string[], splitId: string): string[] {
   const splitIdStr = splitId.toString();
   if (!splits.includes(splitIdStr)) {
@@ -36,11 +35,9 @@ function addSplitToUser(splits: string[], splitId: string): string[] {
   return splits;
 }
 
-// SplitCreated event handler
 SplitManager.SplitCreated.handler(async ({ event, context }) => {
   const { splitId, creator, initialMembers, defaultToken } = event.params;
 
-  // Create Split entity
   const split = {
     id: splitId.toString(),
     creator: creator.toLowerCase(),
@@ -55,7 +52,6 @@ SplitManager.SplitCreated.handler(async ({ event, context }) => {
 
   context.Split.set(split);
 
-  // Update creator's user activity
   let creatorActivity = await getOrCreateUserActivity(
     context,
     creator.toLowerCase()
@@ -68,7 +64,6 @@ SplitManager.SplitCreated.handler(async ({ event, context }) => {
   creatorActivity.totalGasSpent += BigInt(event.transaction.gasPrice || 0);
   context.UserActivity.set(creatorActivity);
 
-  // Update all initial members' user activities
   for (const member of initialMembers) {
     const memberLower = member.toLowerCase();
     if (memberLower !== creator.toLowerCase()) {
@@ -81,7 +76,6 @@ SplitManager.SplitCreated.handler(async ({ event, context }) => {
     }
   }
 
-  // Create transaction record
   const transaction = {
     id: event.transaction.hash,
     from_id: creator.toLowerCase(),
@@ -100,20 +94,20 @@ SplitManager.SplitCreated.handler(async ({ event, context }) => {
   context.Transaction.set(transaction);
 });
 
-// MemberAdded event handler
 SplitManager.MemberAdded.handler(async ({ event, context }) => {
   const { splitId, member } = event.params;
 
-  // Update Split entity
   const split = await context.Split.get(splitId.toString());
   if (split) {
     const memberLower = member.toLowerCase();
     if (!split.members.includes(memberLower)) {
-      split.members = [...split.members, memberLower];
-      context.Split.set(split);
+      const updatedSplit = {
+        ...split,
+        members: [...split.members, memberLower],
+      };
+      context.Split.set(updatedSplit);
     }
 
-    // Update member's user activity
     let memberActivity = await getOrCreateUserActivity(context, memberLower);
     memberActivity.splits = addSplitToUser(
       memberActivity.splits,
@@ -122,10 +116,10 @@ SplitManager.MemberAdded.handler(async ({ event, context }) => {
     context.UserActivity.set(memberActivity);
   }
 
-  // Create transaction record
   const transaction = {
     id: event.transaction.hash,
-    from_id: event.transaction.from.toLowerCase(),
+    from_id:
+      event.transaction.from?.toLowerCase() || event.srcAddress.toLowerCase(),
     to: event.srcAddress.toLowerCase(),
     amount: 0n,
     token: '',
@@ -141,29 +135,32 @@ SplitManager.MemberAdded.handler(async ({ event, context }) => {
   context.Transaction.set(transaction);
 });
 
-// MemberRemoved event handler
 SplitManager.MemberRemoved.handler(async ({ event, context }) => {
   const { splitId, member } = event.params;
 
-  // Update Split entity
   const split = await context.Split.get(splitId.toString());
   if (split) {
     const memberLower = member.toLowerCase();
-    split.members = split.members.filter((m) => m !== memberLower);
-    context.Split.set(split);
+    const updatedSplit = {
+      ...split,
+      members: split.members.filter((m: string) => m !== memberLower),
+    };
+    context.Split.set(updatedSplit);
 
-    // Update member's user activity
     let memberActivity = await getOrCreateUserActivity(context, memberLower);
-    memberActivity.splits = memberActivity.splits.filter(
-      (s) => s !== splitId.toString()
-    );
-    context.UserActivity.set(memberActivity);
+    const updatedActivity = {
+      ...memberActivity,
+      splits: memberActivity.splits.filter(
+        (s: string) => s !== splitId.toString()
+      ),
+    };
+    context.UserActivity.set(updatedActivity);
   }
 
-  // Create transaction record
   const transaction = {
     id: event.transaction.hash,
-    from_id: event.transaction.from.toLowerCase(),
+    from_id:
+      event.transaction.from?.toLowerCase() || event.srcAddress.toLowerCase(),
     to: event.srcAddress.toLowerCase(),
     amount: 0n,
     token: '',
@@ -179,12 +176,10 @@ SplitManager.MemberRemoved.handler(async ({ event, context }) => {
   context.Transaction.set(transaction);
 });
 
-// SpendingAdded event handler
 SplitManager.SpendingAdded.handler(async ({ event, context }) => {
   const { splitId, spendingId, title, payer, amount, forWho, token } =
     event.params;
 
-  // Create Spending entity
   const spending = {
     id: `${splitId.toString()}-${spendingId.toString()}`,
     split_id: splitId.toString(),
@@ -201,7 +196,6 @@ SplitManager.SpendingAdded.handler(async ({ event, context }) => {
 
   context.Spending.set(spending);
 
-  // Update payer's user activity (total spent)
   let payerActivity = await getOrCreateUserActivity(
     context,
     payer.toLowerCase()
@@ -211,23 +205,19 @@ SplitManager.SpendingAdded.handler(async ({ event, context }) => {
   payerActivity.totalGasSpent += BigInt(event.transaction.gasPrice || 0);
   context.UserActivity.set(payerActivity);
 
-  // Calculate debt per person (equal split)
   const numParticipants = forWho.length;
   const sharePerPerson = BigInt(amount) / BigInt(numParticipants);
 
-  // Create or update debts
   for (const participant of forWho) {
     const participantLower = participant.toLowerCase();
     const payerLower = payer.toLowerCase();
 
-    // Skip if participant is the payer
     if (participantLower === payerLower) continue;
 
     const debtId = `${splitId.toString()}-${participantLower}-${payerLower}`;
     let debt = await context.Debt.get(debtId);
 
     if (!debt) {
-      // Create new debt
       debt = {
         id: debtId,
         split_id: splitId.toString(),
@@ -236,28 +226,29 @@ SplitManager.SpendingAdded.handler(async ({ event, context }) => {
         amount: sharePerPerson,
         token: token.toLowerCase(),
         isPaid: false,
-        paidAt: null,
-        txHash: null,
-        chainId: null,
+        paidAt: undefined,
+        txHash: undefined,
       };
+      context.Debt.set(debt);
     } else {
-      // Add to existing debt
-      debt.amount = BigInt(debt.amount) + sharePerPerson;
+      const updatedDebt = {
+        ...debt,
+        amount: BigInt(debt.amount) + sharePerPerson,
+      };
+      context.Debt.set(updatedDebt);
     }
-
-    context.Debt.set(debt);
   }
 
-  // Update Split total debt
   const split = await context.Split.get(splitId.toString());
   if (split) {
-    // Total debt increase = sharePerPerson * (numParticipants - 1) because payer doesn't owe themselves
     const totalDebtIncrease = sharePerPerson * BigInt(numParticipants - 1);
-    split.totalDebt = BigInt(split.totalDebt) + totalDebtIncrease;
-    context.Split.set(split);
+    const updatedSplit = {
+      ...split,
+      totalDebt: BigInt(split.totalDebt) + totalDebtIncrease,
+    };
+    context.Split.set(updatedSplit);
   }
 
-  // Create transaction record
   const transaction = {
     id: event.transaction.hash,
     from_id: payer.toLowerCase(),
@@ -276,7 +267,6 @@ SplitManager.SpendingAdded.handler(async ({ event, context }) => {
   context.Transaction.set(transaction);
 });
 
-// DebtPaid event handler
 SplitManager.DebtPaid.handler(async ({ event, context }) => {
   const { splitId, debtor, creditor, amount, token } = event.params;
 
@@ -284,22 +274,20 @@ SplitManager.DebtPaid.handler(async ({ event, context }) => {
   const creditorLower = creditor.toLowerCase();
   const debtId = `${splitId.toString()}-${debtorLower}-${creditorLower}`;
 
-  // Update debt
   let debt = await context.Debt.get(debtId);
   if (debt) {
-    debt.amount = BigInt(debt.amount) - BigInt(amount);
+    const newAmount = BigInt(debt.amount) - BigInt(amount);
+    const updatedDebt = {
+      ...debt,
+      amount: newAmount,
+      isPaid: newAmount <= 0n,
+      paidAt: newAmount <= 0n ? BigInt(event.block.timestamp) : debt.paidAt,
+      txHash: newAmount <= 0n ? event.transaction.hash : debt.txHash,
+    };
 
-    if (debt.amount <= 0n) {
-      debt.isPaid = true;
-      debt.paidAt = BigInt(event.block.timestamp);
-      debt.txHash = event.transaction.hash;
-      debt.chainId = event.chainId;
-    }
-
-    context.Debt.set(debt);
+    context.Debt.set(updatedDebt);
   }
 
-  // Create debt payment record
   const paymentId = `${event.transaction.hash}-${event.logIndex}`;
   const debtPayment = {
     id: paymentId,
@@ -312,25 +300,24 @@ SplitManager.DebtPaid.handler(async ({ event, context }) => {
 
   context.DebtPayment.set(debtPayment);
 
-  // Update Split total debt
   const split = await context.Split.get(splitId.toString());
   if (split) {
-    split.totalDebt = BigInt(split.totalDebt) - BigInt(amount);
-    context.Split.set(split);
+    const updatedSplit = {
+      ...split,
+      totalDebt: BigInt(split.totalDebt) - BigInt(amount),
+    };
+    context.Split.set(updatedSplit);
   }
 
-  // Update creditor's user activity (total received)
   let creditorActivity = await getOrCreateUserActivity(context, creditorLower);
   creditorActivity.totalReceived += BigInt(amount);
   context.UserActivity.set(creditorActivity);
 
-  // Update debtor's user activity (transaction count and gas)
   let debtorActivity = await getOrCreateUserActivity(context, debtorLower);
   debtorActivity.transactionCount += 1;
   debtorActivity.totalGasSpent += BigInt(event.transaction.gasPrice || 0);
   context.UserActivity.set(debtorActivity);
 
-  // Create transaction record
   const transaction = {
     id: event.transaction.hash,
     from_id: debtorLower,
