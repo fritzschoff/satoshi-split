@@ -1,5 +1,4 @@
 # yaml-language-server: $schema=./node_modules/envio/evm.schema.json
-
 name: satoshi-split-indexer
 description: Multi-chain expense splitting indexer for SatoshiSplit
 
