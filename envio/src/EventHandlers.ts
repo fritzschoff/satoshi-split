@@ -207,7 +207,7 @@ SplitManager.SpendingAdded.handler(async ({ event, context }) => {
   );
   if (token === '0x0000000000000000000000000000000000000000') {
     payerActivity.totalSpentETH += BigInt(amount);
-    payerActivity.totalSpentUSD += BigInt(amount);
+    payerActivity.totalSpentUSD += BigInt(0);
   } else {
     payerActivity.totalSpentETH += BigInt(0);
     payerActivity.totalSpentUSD += BigInt(amount);
@@ -323,7 +323,7 @@ SplitManager.DebtPaid.handler(async ({ event, context }) => {
   let creditorActivity = await getOrCreateUserActivity(context, creditorLower);
   if (token === '0x0000000000000000000000000000000000000000') {
     creditorActivity.totalReceivedETH += BigInt(amount);
-    creditorActivity.totalReceivedUSD += BigInt(amount);
+    creditorActivity.totalReceivedUSD += BigInt(0);
   } else {
     creditorActivity.totalReceivedETH += BigInt(0);
     creditorActivity.totalReceivedUSD += BigInt(amount);

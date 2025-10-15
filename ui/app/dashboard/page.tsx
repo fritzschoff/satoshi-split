@@ -17,7 +17,7 @@ export default function DashboardPage() {
   const [userActivity, setUserActivity] = useState<UserActivity | null>(null);
   const [splits, setSplits] = useState<Split[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
+  console.log(userActivity);
   useEffect(() => {
     async function fetchData() {
       if (!address) {
@@ -99,15 +99,30 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        <div className="grid md:grid-cols-4 gap-4 mb-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card>
             <CardContent className="pt-6">
               <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                Total Spent
+                Total Spent (ETH)
               </div>
               <div className="text-2xl font-bold text-gray-900 dark:text-white">
                 {userActivity
-                  ? `$${(Number(userActivity.totalSpent) / 1e6).toFixed(2)}`
+                  ? `${(Number(userActivity.totalSpentETH) / 1e18).toFixed(
+                      4
+                    )} ETH`
+                  : '0.0000 ETH'}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                Total Spent (USD)
+              </div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                {userActivity
+                  ? `$${(Number(userActivity.totalSpentUSD) / 1e6).toFixed(2)}`
                   : '$0.00'}
               </div>
             </CardContent>
@@ -116,16 +131,35 @@ export default function DashboardPage() {
           <Card>
             <CardContent className="pt-6">
               <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                Total Received
+                Total Received (ETH)
               </div>
               <div className="text-2xl font-bold text-gray-900 dark:text-white">
                 {userActivity
-                  ? `$${(Number(userActivity.totalReceived) / 1e6).toFixed(2)}`
-                  : '$0.00'}
+                  ? `${(Number(userActivity.totalReceivedETH) / 1e18).toFixed(
+                      4
+                    )} ETH`
+                  : '0.0000 ETH'}
               </div>
             </CardContent>
           </Card>
 
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                Total Received (USD)
+              </div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                {userActivity
+                  ? `$${(Number(userActivity.totalReceivedUSD) / 1e6).toFixed(
+                      2
+                    )}`
+                  : '$0.00'}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4 mb-8">
           <Card>
             <CardContent className="pt-6">
               <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">

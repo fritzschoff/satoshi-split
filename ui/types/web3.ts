@@ -34,8 +34,10 @@ export interface Debt {
 }
 export interface UserActivity {
   id: string;
-  totalSpent: string;
-  totalReceived: string;
+  totalSpentETH: string;
+  totalSpentUSD: string;
+  totalReceivedETH: string;
+  totalReceivedUSD: string;
   totalGasSpent: string;
   transactionCount: number;
   splits: string[];

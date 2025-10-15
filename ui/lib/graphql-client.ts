@@ -44,8 +44,10 @@ export const getUserActivityQuery = `
   query GetUserActivity($address: String!) {
     UserActivity(where: { id: { _eq: $address } }) {
       id
-      totalSpent
-      totalReceived
+      totalSpentETH
+      totalSpentUSD
+      totalReceivedETH
+      totalReceivedUSD
       totalGasSpent
       transactionCount
       splits
