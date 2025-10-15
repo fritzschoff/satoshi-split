@@ -10,24 +10,7 @@ import {
   getUserActivityQuery,
   getUserSplitsQuery,
 } from '@/lib/graphql-client';
-
-interface UserActivity {
-  id: string;
-  totalSpent: string;
-  totalReceived: string;
-  totalGasSpent: string;
-  transactionCount: number;
-  splits: string[];
-}
-
-interface Split {
-  id: string;
-  creator: string;
-  members: string[];
-  defaultToken: string;
-  createdAt: string;
-  totalDebt: string;
-}
+import { Split, UserActivity } from '@/types/web3';
 
 export default function DashboardPage() {
   const { address, isConnected } = useAccount();
@@ -46,22 +29,22 @@ export default function DashboardPage() {
         setIsLoading(true);
         const lowerAddress = address.toLowerCase();
 
-        // Fetch user activity
-        const activityData = await graphqlClient.request(getUserActivityQuery, {
-          address: lowerAddress,
-        });
+        const activityData: Record<'UserActivity', UserActivity[]> =
+          await graphqlClient.request(getUserActivityQuery, {
+            address: lowerAddress,
+          });
 
         if (activityData?.UserActivity) {
-          setUserActivity(activityData.UserActivity);
+          setUserActivity(activityData.UserActivity[0]);
         }
 
-        // Fetch user's splits
-        const splitsData = await graphqlClient.request(getUserSplitsQuery, {
-          address: lowerAddress,
-        });
+        const splitsData: Record<'Split', Split[]> =
+          await graphqlClient.request(getUserSplitsQuery, {
+            address: lowerAddress,
+          });
 
-        if (splitsData?.Splits) {
-          setSplits(splitsData.Splits);
+        if (splitsData?.Split) {
+          setSplits(splitsData.Split);
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -116,7 +99,6 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        {/* Stats Overview */}
         <div className="grid md:grid-cols-4 gap-4 mb-8">
           <Card>
             <CardContent className="pt-6">
@@ -167,7 +149,6 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Splits List */}
         <Card>
           <CardHeader>
             <CardTitle>Your Splits</CardTitle>
@@ -188,7 +169,7 @@ export default function DashboardPage() {
                   <Link
                     key={split.id}
                     href={`/split/${split.id}`}
-                    className="block p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+                    className="block p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-700 dark:hover:bg-gray-750 transition-colors"
                   >
                     <div className="flex justify-between items-start">
                       <div>

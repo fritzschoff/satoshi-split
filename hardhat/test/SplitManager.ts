@@ -361,4 +361,92 @@ describe('SplitManager Integration Tests', async function () {
       'Should have 3 members after adding bob'
     );
   });
+
+  it('Should allow Alice to create a split', async function () {
+    const mockUSDC = await viem.deployContract('MockERC20', [
+      'Mock USDC',
+      'USDC',
+      6,
+    ]);
+    const splitManager = await viem.deployContract('SplitManager');
+    const deploymentBlock = await publicClient.getBlockNumber();
+
+    const splitManagerAsAlice = await viem.getContractAt(
+      'SplitManager',
+      splitManager.address,
+      { client: { wallet: alice } }
+    );
+
+    await splitManagerAsAlice.write.createSplit([
+      [creator.account.address, bob.account.address],
+      mockUSDC.address,
+    ]);
+
+    const logs = await publicClient.getContractEvents({
+      address: splitManager.address,
+      abi: splitManager.abi,
+      eventName: 'SplitCreated',
+      fromBlock: deploymentBlock,
+    });
+
+    assert.equal(logs.length, 1, 'Should emit one SplitCreated event');
+    assert.equal(
+      logs[0].args.creator?.toLowerCase(),
+      alice.account.address.toLowerCase(),
+      'Alice should be the creator'
+    );
+
+    const splitId = logs[0].args.splitId!;
+    const details = await splitManager.read.getSplitDetails([splitId]);
+
+    assert.equal(
+      details[0].toLowerCase(),
+      alice.account.address.toLowerCase(),
+      'Alice should be the creator in split details'
+    );
+    assert.equal(details[1].length, 3, 'Should have 3 members including Alice');
+  });
+
+  it('Should revert with "Not a member" when non-member tries to add spending', async function () {
+    const mockUSDC = await viem.deployContract('MockERC20', [
+      'Mock USDC',
+      'USDC',
+      6,
+    ]);
+    const splitManager = await viem.deployContract('SplitManager');
+    const deploymentBlock = await publicClient.getBlockNumber();
+
+    await splitManager.write.createSplit([
+      [alice.account.address],
+      mockUSDC.address,
+    ]);
+
+    const createLogs = await publicClient.getContractEvents({
+      address: splitManager.address,
+      abi: splitManager.abi,
+      eventName: 'SplitCreated',
+      fromBlock: deploymentBlock,
+    });
+
+    const splitId = createLogs[0].args.splitId!;
+
+    const splitManagerAsBob = await viem.getContractAt(
+      'SplitManager',
+      splitManager.address,
+      { client: { wallet: bob } }
+    );
+
+    await assert.rejects(
+      async () => {
+        await splitManagerAsBob.write.addSpending([
+          splitId,
+          'Unauthorized expense',
+          parseUnits('100', 6),
+          [],
+        ]);
+      },
+      /Not a member/,
+      'Should revert when non-member tries to add spending'
+    );
+  });
 });

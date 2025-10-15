@@ -7,8 +7,8 @@ const ENVIO_GRAPHQL_URL =
 export const graphqlClient = new GraphQLClient(ENVIO_GRAPHQL_URL);
 
 export const getSplitQuery = `
-  query GetSplit($id: ID!) {
-    Split(id: $id) {
+  query GetSplit($id: String!) {
+    Split(where: { id: { _eq: $id } }) {
       id
       creator
       members
@@ -25,7 +25,6 @@ export const getSplitQuery = `
         timestamp
         token
         txHash
-        chainId
       }
       debts {
         id
@@ -42,8 +41,8 @@ export const getSplitQuery = `
 `;
 
 export const getUserActivityQuery = `
-  query GetUserActivity($address: ID!) {
-    UserActivity(id: $address) {
+  query GetUserActivity($address: String!) {
+    UserActivity(where: { id: { _eq: $address } }) {
       id
       totalSpent
       totalReceived
@@ -52,16 +51,13 @@ export const getUserActivityQuery = `
       splits
       transactions {
         id
-        from {
-          id
-        }
+        from_id
         to
         amount
         token
         gasUsed
         gasPrice
         timestamp
-        chainId
         status
         blockNumber
         txType
@@ -72,7 +68,7 @@ export const getUserActivityQuery = `
 
 export const getUserSplitsQuery = `
   query GetUserSplits($address: String!) {
-    Splits(where: { members_contains: [$address] }) {
+    Split(where: { members: { _contains: [$address] } }) {
       id
       creator
       members
