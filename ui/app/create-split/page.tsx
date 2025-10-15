@@ -24,7 +24,7 @@ const TOKENS = [
 ];
 
 export default function CreateSplitPage() {
-  const { address, isConnected } = useAccount();
+  const { isConnected } = useAccount();
   const router = useRouter();
   const [members, setMembers] = useState<string>('');
   const [selectedToken, setSelectedToken] = useState(TOKENS[0].address);

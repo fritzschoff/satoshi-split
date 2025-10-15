@@ -77,7 +77,7 @@ export default function SplitDetailPage({
       hash: paymentHash,
     });
 
-  const fetchSplit = async () => {
+  const fetchSplit = React.useCallback(async () => {
     try {
       setIsLoading(true);
       const data: Record<'Split', Split[]> = await graphqlClient.request(
@@ -96,11 +96,11 @@ export default function SplitDetailPage({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchSplit();
-  }, [id]);
+  }, [fetchSplit]);
 
   useEffect(() => {
     if (isExpenseSuccess || isPaymentSuccess) {
@@ -108,7 +108,7 @@ export default function SplitDetailPage({
         fetchSplit();
       }, 2000);
     }
-  }, [isExpenseSuccess, isPaymentSuccess]);
+  }, [isExpenseSuccess, isPaymentSuccess, fetchSplit]);
 
   useEffect(() => {
     if (isExpenseSuccess) {
@@ -118,7 +118,7 @@ export default function SplitDetailPage({
         setSelectedMembers(split.members);
       }
     }
-  }, [isExpenseSuccess]);
+  }, [isExpenseSuccess, split]);
 
   const defaultToken = split?.defaultToken || zeroAddress;
   const [tokenSymbol, tokenDecimals] = useMemo(

@@ -6,7 +6,6 @@ import {
   optimismSepolia,
   baseSepolia,
   arbitrumSepolia,
-  avalancheFuji,
 } from 'wagmi/chains';
 
 export const config = getDefaultConfig({

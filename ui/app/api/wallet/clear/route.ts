@@ -6,7 +6,7 @@ export async function POST() {
     const cookieStore = await cookies();
     cookieStore.delete('wallet_address');
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Failed to clear cookie' },
       { status: 500 }
