@@ -68,11 +68,3 @@ type Transaction {
   blockNumber: BigInt!
   txType: String!
 }
-
-type EthPriceUpdate {
-  id: ID!
-  price: BigInt!
-  roundId: BigInt!
-  timestamp: BigInt!
-  blockNumber: BigInt!
-}

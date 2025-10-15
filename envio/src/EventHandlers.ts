@@ -1,9 +1,5 @@
-import {
-  SplitManager,
-  ChainlinkPriceFeed,
-} from '../generated/src/Handlers.gen';
+import { SplitManager } from '../generated/src/Handlers.gen';
 import { handlerContext } from 'generated';
-import { getLatestEthPrice } from './utils';
 
 async function getOrCreateUserActivity(
   context: handlerContext,
@@ -189,11 +185,6 @@ SplitManager.SpendingAdded.handler(async ({ event, context }) => {
   const { splitId, spendingId, title, payer, amount, forWho, token } =
     event.params;
 
-  // Get current ETH price from Chainlink
-  const ethPrice = await context.effect(getLatestEthPrice, {
-    chainId: event.chainId,
-  });
-
   const spending = {
     id: `${splitId.toString()}-${spendingId.toString()}`,
     split_id: splitId.toString(),
@@ -214,14 +205,9 @@ SplitManager.SpendingAdded.handler(async ({ event, context }) => {
     context,
     payer.toLowerCase()
   );
-  // If token is ETH, add to totalSpentETH and calculate USD value
   if (token === '0x0000000000000000000000000000000000000000') {
     payerActivity.totalSpentETH += BigInt(amount);
-    // Convert ETH to USD using current price (price has 8 decimals, amount has 18 decimals)
-    if (ethPrice) {
-      const usdValue = (BigInt(amount) * ethPrice) / BigInt(1e8);
-      payerActivity.totalSpentUSD += usdValue;
-    }
+    payerActivity.totalSpentUSD += BigInt(amount);
   } else {
     payerActivity.totalSpentETH += BigInt(0);
     payerActivity.totalSpentUSD += BigInt(amount);
@@ -295,10 +281,6 @@ SplitManager.SpendingAdded.handler(async ({ event, context }) => {
 SplitManager.DebtPaid.handler(async ({ event, context }) => {
   const { splitId, debtor, creditor, amount, token } = event.params;
 
-  const ethPrice = await context.effect(getLatestEthPrice, {
-    chainId: event.chainId,
-  });
-
   const debtorLower = debtor.toLowerCase();
   const creditorLower = creditor.toLowerCase();
   const debtId = `${splitId.toString()}-${debtorLower}-${creditorLower}`;
@@ -341,10 +323,7 @@ SplitManager.DebtPaid.handler(async ({ event, context }) => {
   let creditorActivity = await getOrCreateUserActivity(context, creditorLower);
   if (token === '0x0000000000000000000000000000000000000000') {
     creditorActivity.totalReceivedETH += BigInt(amount);
-    if (ethPrice) {
-      const usdValue = (BigInt(amount) * ethPrice) / BigInt(1e8);
-      creditorActivity.totalReceivedUSD += usdValue;
-    }
+    creditorActivity.totalReceivedUSD += BigInt(amount);
   } else {
     creditorActivity.totalReceivedETH += BigInt(0);
     creditorActivity.totalReceivedUSD += BigInt(amount);

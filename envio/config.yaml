@@ -11,10 +11,6 @@ contracts:
       - event: 'MemberRemoved(uint256 indexed splitId, address indexed member)'
       - event: 'SpendingAdded(uint256 indexed splitId, uint256 spendingId, string title, address indexed payer, uint256 amount, address[] forWho, address token)'
       - event: 'DebtPaid(uint256 indexed splitId, address indexed debtor, address indexed creditor, uint256 amount, address token)'
-  - name: ChainlinkPriceFeed
-    handler: src/EventHandlers.ts
-    events:
-      - event: 'AnswerUpdated(int256 indexed current, uint256 indexed roundId, uint256 updatedAt)'
 
 networks:
   - id: 11155111
