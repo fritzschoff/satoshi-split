@@ -14,7 +14,7 @@ import { graphqlClient, getSplitQuery } from '@/lib/graphql-client';
 import { Split } from '@/types/web3';
 import { TOKEN_SYMBOLS, TOKEN_DECIMALS } from '@/constants/tokens';
 import { zeroAddress, parseUnits, encodeFunctionData } from 'viem';
-import { SPLIT_MANAGER_ABI } from '@/lib/contract-abi';
+import { SPLIT_MANAGER_ABI } from '@/constants/contract-abi';
 import { simulateContract } from 'viem/actions';
 
 const SPLIT_CONTRACT_ADDRESS = (process.env
@@ -166,23 +166,24 @@ export default function SplitDetailPage({
       const amountInUnits = parseUnits(expenseAmount, tokenDecimals);
 
       try {
-        await simulateContract(publicClient!, {
-          account: address,
-          address: SPLIT_CONTRACT_ADDRESS,
-          abi: SPLIT_MANAGER_ABI,
-          functionName: 'addSpending',
-          args: [
-            BigInt(id),
-            expenseTitle,
-            amountInUnits,
-            selectedMembers as `0x${string}`[],
-          ],
-        });
-
-        const gas = await publicClient!.estimateGas({
-          account: address,
-          to: SPLIT_CONTRACT_ADDRESS,
-          data: encodeFunctionData({
+        const [gas] = await Promise.all([
+          publicClient!.estimateGas({
+            account: address,
+            to: SPLIT_CONTRACT_ADDRESS,
+            data: encodeFunctionData({
+              abi: SPLIT_MANAGER_ABI,
+              functionName: 'addSpending',
+              args: [
+                BigInt(id),
+                expenseTitle,
+                amountInUnits,
+                selectedMembers as `0x${string}`[],
+              ],
+            }),
+          }),
+          simulateContract(publicClient!, {
+            account: address,
+            address: SPLIT_CONTRACT_ADDRESS,
             abi: SPLIT_MANAGER_ABI,
             functionName: 'addSpending',
             args: [
@@ -192,7 +193,7 @@ export default function SplitDetailPage({
               selectedMembers as `0x${string}`[],
             ],
           }),
-        });
+        ]);
 
         addExpense({
           account: address,

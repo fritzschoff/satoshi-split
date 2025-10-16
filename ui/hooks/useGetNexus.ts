@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { EthereumProvider, NexusSDK, UserAsset } from '@avail-project/nexus';
 import { useAccount } from 'wagmi';
-import { useNexus } from '@avail-project/nexus-widgets';
+import {
+  useNexus,
+  UserAsset,
+  EthereumProvider,
+} from '@avail-project/nexus-widgets';
 
 export function useGetNexus() {
   const [error, setError] = useState<Error | null>(null);

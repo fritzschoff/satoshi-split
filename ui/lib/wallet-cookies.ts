@@ -3,7 +3,7 @@
 import { cookies } from 'next/headers';
 
 const WALLET_ADDRESS_COOKIE = 'wallet_address';
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
 
 export async function getWalletAddressFromCookie(): Promise<string | null> {
   const cookieStore = await cookies();
