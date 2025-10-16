@@ -19,8 +19,7 @@ export default function DashboardPage() {
   const [userActivity, setUserActivity] = useState<UserActivity | null>(null);
   const [splits, setSplits] = useState<Split[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { unifiedBalance, initSDK, isInitialized } = useGetNexus();
-  console.log(unifiedBalance);
+  const { unifiedBalance, initSDK, isInitialized, error } = useGetNexus();
 
   useEffect(() => {
     async function fetchData() {
@@ -188,8 +187,12 @@ export default function DashboardPage() {
                 </div>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">
                   {`$${Number(
-                    unifiedBalance?.find((balance) => balance.symbol === 'ETH')
-                      ?.balanceInFiat ?? '0'
+                    (unifiedBalance?.find(
+                      (balance) => balance.symbol === 'USDC'
+                    )?.balanceInFiat ?? 0) +
+                      (unifiedBalance?.find(
+                        (balance) => balance.symbol === 'USDT'
+                      )?.balanceInFiat ?? 0)
                   ).toLocaleString('en-US', {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
@@ -285,6 +288,10 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        ) : error ? (
+          <div className="flex justify-center items-center h-full mb-8">
+            <p className="text-red-500">{error.message}</p>
           </div>
         ) : (
           <div className="flex justify-center items-center h-full mb-8">
