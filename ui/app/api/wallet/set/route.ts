@@ -3,6 +3,13 @@ import { cookies } from 'next/headers';
 
 export async function POST(request: NextRequest) {
   try {
+    const origin = request.headers.get('origin');
+    const host = request.headers.get('host');
+
+    if (origin && !origin.includes(host || '')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { address } = await request.json();
 
     if (!address) {
@@ -11,9 +18,11 @@ export async function POST(request: NextRequest) {
 
     const cookieStore = await cookies();
     cookieStore.set('wallet_address', address, {
-      maxAge: 60 * 60 * 24 * 30, // 30 days
+      maxAge: 60 * 60 * 24 * 30,
       path: '/',
       sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: false,
     });
 
     return NextResponse.json({ success: true });

@@ -11,13 +11,15 @@ import {
   getUserSplitsQuery,
 } from '@/lib/graphql-client';
 import { Split, UserActivity } from '@/types/web3';
+import { useGetNexus } from '@/hooks/useGetNexus';
 
 export default function DashboardPage() {
   const { address, isConnected } = useAccount();
   const [userActivity, setUserActivity] = useState<UserActivity | null>(null);
   const [splits, setSplits] = useState<Split[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  console.log(userActivity);
+  const { unifiedBalance } = useGetNexus();
+
   useEffect(() => {
     async function fetchData() {
       if (!address) {
@@ -156,6 +158,34 @@ export default function DashboardPage() {
                   : '$0.00'}
               </div>
             </CardContent>
+          </Card>
+        </div>
+        <div className="grid md:grid-cols-2 gap-4 mb-8">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                Total Balance (ETH)
+              </div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                {
+                  unifiedBalance?.find((balance) => balance.symbol === 'ETH')
+                    ?.balance
+                }
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                Total Balance (USD)
+              </div>
+            </CardContent>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">
+              {
+                unifiedBalance?.find((balance) => balance.symbol === 'ETH')
+                  ?.balanceInFiat
+              }
+            </div>
           </Card>
         </div>
 
