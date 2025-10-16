@@ -9,7 +9,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { SPLIT_MANAGER_ABI } from '@/lib/contract-abi';
+import { SPLIT_MANAGER_ABI } from '@/constants/contract-abi';
 import { useRouter } from 'next/navigation';
 
 const SPLIT_CONTRACT_ADDRESS = (process.env

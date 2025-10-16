@@ -5,12 +5,17 @@ import '@/lib/polyfills';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider } from 'wagmi';
-import { darkTheme, RainbowKitProvider } from '@rainbow-me/rainbowkit';
+import {
+  darkTheme,
+  lightTheme,
+  RainbowKitProvider,
+} from '@rainbow-me/rainbowkit';
 import { config } from '@/lib/wagmi';
 import '@rainbow-me/rainbowkit/styles.css';
 import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { NexusProvider } from '@avail-project/nexus-widgets';
+import { ThemeProvider, useTheme } from './ThemeProvider';
 
 const queryClient = new QueryClient();
 
@@ -32,6 +37,31 @@ function WalletCookieSync() {
   return null;
 }
 
+function RainbowKitThemeWrapper({ children }: { children: React.ReactNode }) {
+  const { theme } = useTheme();
+
+  const currentTheme =
+    theme === 'dark'
+      ? darkTheme({
+          accentColor: '#3b82f6',
+          accentColorForeground: '#ffffff',
+          borderRadius: 'small',
+          fontStack: 'system',
+          overlayBlur: 'small',
+        })
+      : lightTheme({
+          accentColor: '#2563eb',
+          accentColorForeground: '#ffffff',
+          borderRadius: 'small',
+          fontStack: 'system',
+          overlayBlur: 'small',
+        });
+
+  return (
+    <RainbowKitProvider theme={currentTheme}>{children}</RainbowKitProvider>
+  );
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
@@ -40,23 +70,22 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <NexusProvider config={{ network: 'testnet' }}>
-      <WagmiProvider config={config}>
-        <QueryClientProvider client={queryClient}>
-          <RainbowKitProvider
-            theme={darkTheme({
-              accentColor: '#000000',
-              accentColorForeground: '#ffffff',
-              borderRadius: 'small',
-              fontStack: 'system',
-              overlayBlur: 'small',
-            })}
-          >
-            {mounted && <WalletCookieSync />}
-            {children}
-          </RainbowKitProvider>
-        </QueryClientProvider>
-      </WagmiProvider>
-    </NexusProvider>
+    <ThemeProvider>
+      <NexusProvider
+        config={{
+          network: 'testnet',
+          debug: process.env.NODE_ENV === 'development',
+        }}
+      >
+        <WagmiProvider config={config}>
+          <QueryClientProvider client={queryClient}>
+            <RainbowKitThemeWrapper>
+              {mounted && <WalletCookieSync />}
+              {children}
+            </RainbowKitThemeWrapper>
+          </QueryClientProvider>
+        </WagmiProvider>
+      </NexusProvider>
+    </ThemeProvider>
   );
 }

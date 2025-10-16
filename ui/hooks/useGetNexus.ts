@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useAccount } from 'wagmi';
 import {
   useNexus,
@@ -10,7 +10,7 @@ import {
 
 export function useGetNexus() {
   const [error, setError] = useState<Error | null>(null);
-  const { address, isConnected, connector } = useAccount();
+  const { isConnected, connector } = useAccount();
   const [unifiedBalance, setUnifiedBalance] = useState<UserAsset[] | null>(
     null
   );
@@ -21,53 +21,24 @@ export function useGetNexus() {
     isSdkInitialized: isInitialized,
   } = useNexus();
 
-  useEffect(() => {
-    async function initializeNexus() {
-      try {
-        setError(null);
-
-        if (isConnected && address && connector && !isInitialized) {
-          const provider = await connector.getProvider();
-          setProvider(provider as EthereumProvider);
-          const isInitialized = await initializeSdk(
-            provider as EthereumProvider
-          );
-          console.log(isInitialized);
-
-          setInterval(() => {
-            getUnifiedBalance();
-          }, 1000);
-        }
-      } catch (err) {
-        console.error('Error initializing Nexus SDK:', err);
-        setError(
-          err instanceof Error
-            ? err
-            : new Error('Failed to initialize Nexus SDK')
-        );
-      }
-    }
-
-    initializeNexus();
-  }, [isConnected, address, connector]);
+  const initSDK = async () => {
+    const provider = await connector?.getProvider();
+    setProvider(provider as EthereumProvider);
+    await initializeSdk(provider as EthereumProvider);
+    getUnifiedBalance();
+  };
 
   const getUnifiedBalance = async () => {
-    console.log(nexus, isInitialized);
-    if (isInitialized && nexus) {
-      try {
-        console.log(nexus);
-        const balances = await nexus.getUnifiedBalances();
-        console.log('balances', balances);
-        setUnifiedBalance(balances ?? null);
-      } catch (error) {
-        console.log('error', error);
-        console.error('Error getting unified balance:', error);
-        setError(
-          error instanceof Error
-            ? error
-            : new Error('Failed to get unified balance')
-        );
-      }
+    try {
+      const balances = await nexus.getUnifiedBalances();
+      setUnifiedBalance(balances ?? null);
+    } catch (error) {
+      console.error('Error getting unified balance:', error);
+      setError(
+        error instanceof Error
+          ? error
+          : new Error('Failed to get unified balance')
+      );
     }
   };
 
@@ -78,5 +49,6 @@ export function useGetNexus() {
     isConnected,
     unifiedBalance,
     getUnifiedBalance,
+    initSDK,
   };
 }
