@@ -28,6 +28,7 @@ contracts:
       - event: 'Withdraw(address indexed to, address token, uint256 amount)'
 
 networks:
+  # Sepolia
   - id: 11155111
     start_block: 9405553
     contracts:
@@ -37,24 +38,28 @@ networks:
       - name: NexusVault
         address:
           - '0xF0111EdE031a4377C34A4AD900f1E633E41055Dc'
+  # Arbitrum Sepolia
   - id: 421614
     start_block: 205527037
     contracts:
       - name: NexusVault
         address:
           - '0xF0111EdE031a4377C34A4AD900f1E633E41055Dc'
+  # Optimism Sepolia
   - id: 11155420
-    start_block: 34445677
+    start_block: 34413272
     contracts:
       - name: NexusVault
         address:
           - '0xF0111EdE031a4377C34A4AD900f1E633E41055Dc'
+  # AMOY Testnet
   - id: 80002
     start_block: 27745042
     contracts:
       - name: NexusVault
         address:
           - '0xF0111EdE031a4377C34A4AD900f1E633E41055Dc'
+  # Base Sepolia
   - id: 84532
     start_block: 32457101
     contracts:

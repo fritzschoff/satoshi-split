@@ -1,3 +1,5 @@
+import { SUPPORTED_TOKENS } from '@avail-project/nexus-widgets';
+
 export const TOKEN_SYMBOLS: Record<string, string> = {
   '0x???': 'USDC',
   '0x0000000000000000000000000000000000000000': 'ETH',
@@ -8,7 +10,14 @@ export const TOKEN_DECIMALS: Record<string, number> = {
   '0x0000000000000000000000000000000000000000': 18,
 };
 
-const getUSDCTokenAddress = (chainId: number) => {
+export const SUPPORTED_TOKENS_BY_SYMBOL = [
+  'USDC',
+  'USDT',
+  'ETH',
+] as SUPPORTED_TOKENS[];
+export const SUPPORTED_CHAINS = [8453, 11155111, 80002, 11155420, 421614];
+
+export const getUSDCTokenAddress = (chainId: number) => {
   switch (chainId) {
     case 84532:
       return '0x036cbd53842c5426634e7929541ec2318f3dcf7e';
@@ -27,7 +36,7 @@ const getUSDCTokenAddress = (chainId: number) => {
   }
 };
 
-const getUSDTTokenAddress = (chainId: number) => {
+export const getUSDTTokenAddress = (chainId: number) => {
   switch (chainId) {
     case 11155420:
       return '0x6462693c2f21ac0e517f12641d404895030f7426';
