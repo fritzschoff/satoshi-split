@@ -39,6 +39,11 @@ export default function RootLayout({
                   document.documentElement.classList.remove('dark');
                 }
               } catch {}
+              
+              // Ensure global is defined
+              if (typeof global === 'undefined') {
+                window.global = window;
+              }
             `,
           }}
         />

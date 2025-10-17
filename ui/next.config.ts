@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, webpack }) => {
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
@@ -11,11 +11,15 @@ const nextConfig: NextConfig = {
         util: require.resolve('util/'),
         process: require.resolve('process/browser'),
       };
+
+      config.plugins.push(
+        new webpack.ProvidePlugin({
+          Buffer: ['buffer', 'Buffer'],
+          process: 'process/browser',
+        })
+      );
     }
     return config;
-  },
-  turbopack: {
-    resolveExtensions: ['.ts', '.tsx', '.js', '.jsx', '.json', '.mjs'],
   },
   images: {
     remotePatterns: [

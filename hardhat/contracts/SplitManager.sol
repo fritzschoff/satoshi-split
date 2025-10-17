@@ -113,10 +113,13 @@ contract SplitManager {
         for (uint256 i = 0; i < initialMembers.length; i++) {
             address member = initialMembers[i];
             require(member != address(0), "Invalid member address");
+            require(member != msg.sender, "Creator cannot be in members list");
             
-            if (member != msg.sender && !_isMember(splitId, member)) {
-                newSplit.members.push(member);
+            for (uint256 j = 0; j < i; j++) {
+                require(initialMembers[j] != member, "Duplicate member address");
             }
+            
+            newSplit.members.push(member);
         }
         
         emit SplitCreated(splitId, msg.sender, initialMembers, defaultToken);
@@ -253,7 +256,6 @@ contract SplitManager {
             IERC20(token).safeTransferFrom(msg.sender, creditor, amount);
         }
         
-        // Update debt
         debt.amount -= amount;
         splits[splitId].totalDebt -= amount;
         

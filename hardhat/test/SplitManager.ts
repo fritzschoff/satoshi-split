@@ -449,4 +449,44 @@ describe('SplitManager Integration Tests', async function () {
       'Should revert when non-member tries to add spending'
     );
   });
+
+  it('Should revert when creator includes themselves in initialMembers', async function () {
+    const mockUSDC = await viem.deployContract('MockERC20', [
+      'Mock USDC',
+      'USDC',
+      6,
+    ]);
+    const splitManager = await viem.deployContract('SplitManager');
+
+    await assert.rejects(
+      async () => {
+        await splitManager.write.createSplit([
+          [creator.account.address, alice.account.address],
+          mockUSDC.address,
+        ]);
+      },
+      /Creator cannot be in members list/,
+      'Should revert when creator is included in initialMembers'
+    );
+  });
+
+  it('Should revert when duplicate members are provided', async function () {
+    const mockUSDC = await viem.deployContract('MockERC20', [
+      'Mock USDC',
+      'USDC',
+      6,
+    ]);
+    const splitManager = await viem.deployContract('SplitManager');
+
+    await assert.rejects(
+      async () => {
+        await splitManager.write.createSplit([
+          [alice.account.address, bob.account.address, alice.account.address],
+          mockUSDC.address,
+        ]);
+      },
+      /Duplicate member address/,
+      'Should revert when duplicate members are provided'
+    );
+  });
 });

@@ -34,31 +34,24 @@ networks:
     contracts:
       - name: SplitManager
         address:
-          - '0x3dA416c0B71a28044003d8AA6de6584822F045f9'
+          - '0xDd09FA133e806307a3574E9361B7F3A56dD2448B'
       - name: NexusVault
         address:
           - '0xF0111EdE031a4377C34A4AD900f1E633E41055Dc'
   # Arbitrum Sepolia
-  - id: 421614
-    start_block: 205527037
-    contracts:
-      - name: NexusVault
-        address:
-          - '0xF0111EdE031a4377C34A4AD900f1E633E41055Dc'
+  # - id: 421614
+  #   start_block: 205527037
+  #   contracts:
+  #     - name: NexusVault
+  #       address:
+  #         - '0xF0111EdE031a4377C34A4AD900f1E633E41055Dc'
   # Optimism Sepolia
-  - id: 11155420
-    start_block: 34413272
-    contracts:
-      - name: NexusVault
-        address:
-          - '0xF0111EdE031a4377C34A4AD900f1E633E41055Dc'
-  # AMOY Testnet
-  - id: 80002
-    start_block: 27745042
-    contracts:
-      - name: NexusVault
-        address:
-          - '0xF0111EdE031a4377C34A4AD900f1E633E41055Dc'
+  # - id: 11155420
+  #   start_block: 34413272
+  #   contracts:
+  #     - name: NexusVault
+  #       address:
+  #         - '0xF0111EdE031a4377C34A4AD900f1E633E41055Dc'
   # Base Sepolia
   - id: 84532
     start_block: 32457101

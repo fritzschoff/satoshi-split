@@ -4,25 +4,29 @@ import { useAccount } from 'wagmi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   graphqlClient,
   getUserActivityQuery,
   getUserSplitsQuery,
+  getUserBridgeActivityQuery,
 } from '@/lib/graphql-client';
-import { Split, UserActivity } from '@/types/web3';
+import { BridgeActivity, Split, UserActivity } from '@/types/web3';
 import { useGetNexus } from '@/hooks/useGetNexus';
 import Image from 'next/image';
 import {
   SUPPORTED_CHAINS,
   SUPPORTED_TOKENS_BY_SYMBOL,
 } from '@/constants/tokens';
-import { SUPPORTED_TOKENS, UserAsset } from '@avail-project/nexus-widgets';
 
 export default function DashboardPage() {
   const { address, isConnected } = useAccount();
   const [userActivity, setUserActivity] = useState<UserActivity | null>(null);
   const [splits, setSplits] = useState<Split[]>([]);
+  const [bridgeActivity, setBridgeActivity] = useState<BridgeActivity | null>(
+    null
+  );
+
   const [isLoading, setIsLoading] = useState(true);
   const {
     unifiedBalance,
@@ -34,7 +38,7 @@ export default function DashboardPage() {
     bridge,
     simulateBridge,
   } = useGetNexus();
-
+  console.log(unifiedBalance);
   useEffect(() => {
     async function fetchData() {
       if (!address) {
@@ -62,6 +66,18 @@ export default function DashboardPage() {
 
         if (splitsData?.Split) {
           setSplits(splitsData.Split);
+        }
+
+        const bridgeData: BridgeActivity = await graphqlClient.request(
+          getUserBridgeActivityQuery,
+          {
+            address: lowerAddress,
+            limit: 10,
+          }
+        );
+
+        if (bridgeData) {
+          setBridgeActivity(bridgeData);
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -312,23 +328,6 @@ export default function DashboardPage() {
                                   </div>
                                   <div className="text-gray-600 dark:text-gray-400">
                                     Balance: {item.balance}{' '}
-                                    <Button
-                                      onClick={async () => {
-                                        const simulationResult =
-                                          await simulateBridge(
-                                            balance.symbol as SUPPORTED_TOKENS,
-                                            '1'
-                                          );
-                                        console.log(simulationResult);
-                                        const result = await bridge(
-                                          balance.symbol as SUPPORTED_TOKENS,
-                                          '1'
-                                        );
-                                        console.log(result);
-                                      }}
-                                    >
-                                      Bridge
-                                    </Button>
                                   </div>
                                   <div className="text-gray-600 dark:text-gray-400">
                                     Fiat: $
@@ -360,7 +359,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div className="grid md:grid-cols-2 gap-4 mb-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card>
             <CardContent className="pt-6">
               <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
@@ -382,7 +381,191 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                Bridge Deposits
+              </div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                {bridgeActivity?.BridgeDeposit.length || 0}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                Bridge Withdrawals
+              </div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                {bridgeActivity?.BridgeWithdraw.length || 0}
+              </div>
+            </CardContent>
+          </Card>
         </div>
+
+        {bridgeActivity &&
+          (bridgeActivity.BridgeDeposit.length > 0 ||
+            bridgeActivity.BridgeFill.length > 0 ||
+            bridgeActivity.BridgeWithdraw.length > 0) && (
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle>Bridge Activity</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {bridgeActivity.BridgeDeposit.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                        Recent Deposits
+                      </h3>
+                      <div className="space-y-2">
+                        {bridgeActivity.BridgeDeposit.map((deposit) => (
+                          <div
+                            key={deposit.id}
+                            className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                  Request: {deposit.requestHash.slice(0, 10)}...
+                                  {deposit.requestHash.slice(-8)}
+                                </div>
+                                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                  Chain ID: {deposit.chainId} •{' '}
+                                  {deposit.gasRefunded ? (
+                                    <span className="text-green-600 dark:text-green-400">
+                                      Gas Refunded
+                                    </span>
+                                  ) : (
+                                    <span className="text-gray-500">
+                                      No Refund
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {new Date(
+                                    Number(deposit.timestamp) * 1000
+                                  ).toLocaleString()}
+                                </div>
+                              </div>
+                              <a
+                                href={`https://etherscan.io/tx/${deposit.txHash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                              >
+                                View Tx →
+                              </a>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {bridgeActivity.BridgeWithdraw.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                        Recent Withdrawals
+                      </h3>
+                      <div className="space-y-2">
+                        {bridgeActivity.BridgeWithdraw.map((withdraw) => (
+                          <div
+                            key={withdraw.id}
+                            className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                  Amount:{' '}
+                                  {(Number(withdraw.amount) / 1e18).toFixed(6)}
+                                </div>
+                                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                  Token: {withdraw.token.slice(0, 6)}...
+                                  {withdraw.token.slice(-4)}
+                                </div>
+                                <div className="text-xs text-gray-600 dark:text-gray-400">
+                                  Chain ID: {withdraw.chainId}
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {new Date(
+                                    Number(withdraw.timestamp) * 1000
+                                  ).toLocaleString()}
+                                </div>
+                              </div>
+                              <a
+                                href={`https://etherscan.io/tx/${withdraw.txHash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                              >
+                                View Tx →
+                              </a>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {bridgeActivity.BridgeFill.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                        Solver Fills
+                      </h3>
+                      <div className="space-y-2">
+                        {bridgeActivity.BridgeFill.map((fill) => (
+                          <div
+                            key={fill.id}
+                            className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-blue-50 dark:bg-blue-900/20"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                  Request: {fill.requestHash.slice(0, 10)}...
+                                  {fill.requestHash.slice(-8)}
+                                </div>
+                                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                  Chain ID: {fill.chainId}
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {new Date(
+                                    Number(fill.timestamp) * 1000
+                                  ).toLocaleString()}
+                                </div>
+                              </div>
+                              <a
+                                href={`${
+                                  fill.chainId === 11155111
+                                    ? 'https://sepolia.etherscan.io'
+                                    : fill.chainId === 84532
+                                    ? 'https://sepolia.basescan.org'
+                                    : fill.chainId === 421614
+                                    ? 'https://sepolia.arbiscan.io'
+                                    : fill.chainId === 80002
+                                    ? 'https://amoy.scrollscan.com'
+                                    : fill.chainId === 11155420
+                                    ? 'https://sepolia.optimistic.etherscan.io'
+                                    : 'https://etherscan.io'
+                                }/tx/${fill.txHash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                              >
+                                View Tx →
+                              </a>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
         <Card>
           <CardHeader>

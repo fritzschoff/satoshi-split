@@ -42,3 +42,41 @@ export interface UserActivity {
   transactionCount: number;
   splits: string[];
 }
+export interface BridgeDeposit {
+  id: string;
+  requestHash: string;
+  from: string;
+  gasRefunded: boolean;
+  timestamp: string;
+  blockNumber: string;
+  txHash: string;
+  chainId: number;
+}
+
+export interface BridgeFill {
+  id: string;
+  requestHash: string;
+  from: string;
+  solver: string;
+  timestamp: string;
+  blockNumber: string;
+  txHash: string;
+  chainId: number;
+}
+
+export interface BridgeWithdraw {
+  id: string;
+  to: string;
+  token: string;
+  amount: string;
+  timestamp: string;
+  blockNumber: string;
+  txHash: string;
+  chainId: number;
+}
+
+export interface BridgeActivity {
+  BridgeDeposit: BridgeDeposit[];
+  BridgeFill: BridgeFill[];
+  BridgeWithdraw: BridgeWithdraw[];
+}

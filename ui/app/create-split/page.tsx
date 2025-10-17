@@ -5,51 +5,81 @@ import {
   useAccount,
   useWriteContract,
   useWaitForTransactionReceipt,
+  useChainId,
+  useSwitchChain,
 } from 'wagmi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { SPLIT_MANAGER_ABI } from '@/constants/contract-abi';
 import { useRouter } from 'next/navigation';
+import { sepolia } from 'wagmi/chains';
 
 const SPLIT_CONTRACT_ADDRESS = (process.env
   .NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS ||
   '0x0000000000000000000000000000000000000000') as `0x${string}`;
 
-// Token options from Nexus SDK
 const TOKENS = [
   { name: 'ETH', address: '0x0000000000000000000000000000000000000000' },
-  { name: 'USDC', address: '0xYourUSDCAddress' }, // Replace with actual addresses
-  { name: 'USDT', address: '0xYourUSDTAddress' },
+  { name: 'USDC', address: '0x1c7d4b196cb0c7b01d743fbc6116a902379c7238' },
 ];
 
 export default function CreateSplitPage() {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
+  const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
   const router = useRouter();
   const [members, setMembers] = useState<string>('');
   const [selectedToken, setSelectedToken] = useState(TOKENS[0].address);
+  const [validationError, setValidationError] = useState<string>('');
 
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
   });
 
+  const isOnSepolia = chainId === sepolia.id;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError('');
 
-    if (!isConnected) {
+    if (!isConnected || !address) {
       alert('Please connect your wallet');
+      return;
+    }
+
+    if (!isOnSepolia) {
+      setValidationError('Please switch to Sepolia network to create a split');
       return;
     }
 
     // Parse member addresses
     const memberAddresses = members
       .split(',')
-      .map((addr) => addr.trim())
+      .map((addr) => addr.trim().toLowerCase())
       .filter((addr) => addr.length > 0 && addr.startsWith('0x'));
 
     if (memberAddresses.length === 0) {
-      alert('Please add at least one member address');
+      setValidationError('Please add at least one member address');
+      return;
+    }
+
+    // Check if creator is in the members list
+    const creatorAddress = address.toLowerCase();
+    if (memberAddresses.includes(creatorAddress)) {
+      setValidationError(
+        'You cannot add yourself as a member. You are automatically added as the admin.'
+      );
+      return;
+    }
+
+    // Check for duplicate addresses
+    const uniqueAddresses = new Set(memberAddresses);
+    if (uniqueAddresses.size !== memberAddresses.length) {
+      setValidationError(
+        'Duplicate addresses detected. Each member can only be added once.'
+      );
       return;
     }
 
@@ -97,6 +127,21 @@ export default function CreateSplitPage() {
           Create New Split
         </h1>
 
+        {!isOnSepolia && (
+          <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+            <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-3">
+              ⚠️ You are not on Sepolia network. The contract is only deployed
+              on Sepolia.
+            </p>
+            <Button
+              onClick={() => switchChain({ chainId: sepolia.id })}
+              className="w-full"
+            >
+              Switch to Sepolia
+            </Button>
+          </div>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle>Split Details</CardTitle>
@@ -111,6 +156,7 @@ export default function CreateSplitPage() {
                   value={selectedToken}
                   onChange={(e) => setSelectedToken(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  disabled={!isOnSepolia}
                 >
                   {TOKENS.map((token) => (
                     <option key={token.address} value={token.address}>
@@ -130,12 +176,22 @@ export default function CreateSplitPage() {
                   value={members}
                   onChange={(e) => setMembers(e.target.value)}
                   required
+                  disabled={!isOnSepolia}
                 />
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                   You will be added automatically as the admin. Add other
-                  members' wallet addresses separated by commas.
+                  members' wallet addresses separated by commas. Do not include
+                  your own address.
                 </p>
               </div>
+
+              {validationError && (
+                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                    ⚠️ {validationError}
+                  </p>
+                </div>
+              )}
 
               {error && (
                 <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
@@ -157,7 +213,9 @@ export default function CreateSplitPage() {
                 type="submit"
                 className="w-full"
                 isLoading={isPending || isConfirming}
-                disabled={isPending || isConfirming || isSuccess}
+                disabled={
+                  !isOnSepolia || isPending || isConfirming || isSuccess
+                }
               >
                 {isPending
                   ? 'Waiting for approval...'
