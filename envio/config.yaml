@@ -11,6 +11,21 @@ contracts:
       - event: 'MemberRemoved(uint256 indexed splitId, address indexed member)'
       - event: 'SpendingAdded(uint256 indexed splitId, uint256 spendingId, string title, address indexed payer, uint256 amount, address[] forWho, address token)'
       - event: 'DebtPaid(uint256 indexed splitId, address indexed debtor, address indexed creditor, uint256 amount, address token)'
+  - name: NexusVault
+    handler: src/EventHandlers.ts
+    events:
+      - event: 'Deposit(bytes32 indexed requestHash, address from, bool gasRefunded)'
+      - event: 'Fill(bytes32 indexed requestHash, address from, address solver)'
+      - event: 'GasOverheadUpdate(uint8 indexed _function, uint256 overhead)'
+      - event: 'GasPriceUpdate(uint256 gasPrice)'
+      - event: 'Initialized(uint64 version)'
+      - event: 'ReceiveETH(address indexed from, uint256 amount)'
+      - event: 'RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole)'
+      - event: 'RoleGranted(bytes32 indexed role, address indexed account, address indexed sender)'
+      - event: 'RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender)'
+      - event: 'Settle(uint256 indexed nonce, address[] solver, address[] token, uint256[] amount)'
+      - event: 'Upgraded(address indexed implementation)'
+      - event: 'Withdraw(address indexed to, address token, uint256 amount)'
 
 networks:
   - id: 11155111
@@ -19,6 +34,33 @@ networks:
       - name: SplitManager
         address:
           - '0x3dA416c0B71a28044003d8AA6de6584822F045f9'
+      - name: NexusVault
+        address:
+          - '0xF0111EdE031a4377C34A4AD900f1E633E41055Dc'
+  - id: 421614
+    start_block: 205527037
+    contracts:
+      - name: NexusVault
+        address:
+          - '0xF0111EdE031a4377C34A4AD900f1E633E41055Dc'
+  - id: 11155420
+    start_block: 34445677
+    contracts:
+      - name: NexusVault
+        address:
+          - '0xF0111EdE031a4377C34A4AD900f1E633E41055Dc'
+  - id: 80002
+    start_block: 27745042
+    contracts:
+      - name: NexusVault
+        address:
+          - '0xF0111EdE031a4377C34A4AD900f1E633E41055Dc'
+  - id: 84532
+    start_block: 32457101
+    contracts:
+      - name: NexusVault
+        address:
+          - '0xF0111EdE031a4377C34A4AD900f1E633E41055Dc'
 
 unordered_multichain_mode: false
 preload_handlers: true

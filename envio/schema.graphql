@@ -64,7 +64,82 @@ type Transaction {
   gasUsed: BigInt!
   gasPrice: BigInt!
   timestamp: BigInt!
+  chainId: Int!
   status: String!
   blockNumber: BigInt!
   txType: String!
+}
+
+type BridgeDeposit {
+  id: ID!
+  requestHash: String!
+  from: String!
+  gasRefunded: Boolean!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  txHash: String!
+  chainId: Int!
+}
+
+type BridgeFill {
+  id: ID!
+  requestHash: String!
+  from: String!
+  solver: String!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  txHash: String!
+  chainId: Int!
+}
+
+type BridgeWithdraw {
+  id: ID!
+  to: String!
+  token: String!
+  amount: BigInt!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  txHash: String!
+  chainId: Int!
+}
+
+type BridgeSettle {
+  id: ID!
+  nonce: BigInt!
+  solvers: [String!]!
+  tokens: [String!]!
+  amounts: [BigInt!]!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  txHash: String!
+  chainId: Int!
+}
+
+type BridgeGasConfig {
+  id: ID!
+  functionType: Int!
+  overhead: BigInt!
+  updatedAt: BigInt!
+  blockNumber: BigInt!
+  txHash: String!
+  chainId: Int!
+}
+
+type BridgeGasPrice {
+  id: ID!
+  gasPrice: BigInt!
+  updatedAt: BigInt!
+  blockNumber: BigInt!
+  txHash: String!
+  chainId: Int!
+}
+
+type BridgeReceiveETH {
+  id: ID!
+  from: String!
+  amount: BigInt!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  txHash: String!
+  chainId: Int!
 }

@@ -13,13 +13,23 @@ import {
 import { Split, UserActivity } from '@/types/web3';
 import { useGetNexus } from '@/hooks/useGetNexus';
 import Image from 'next/image';
+import { SUPPORTED_TOKENS } from '@avail-project/nexus-widgets';
 
 export default function DashboardPage() {
   const { address, isConnected } = useAccount();
   const [userActivity, setUserActivity] = useState<UserActivity | null>(null);
   const [splits, setSplits] = useState<Split[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { unifiedBalance, initSDK, isInitialized, error } = useGetNexus();
+  const {
+    unifiedBalance,
+    initSDK,
+    isInitialized,
+    error,
+    simulateBridgeAndExecute,
+    bridgeAndExecute,
+    bridge,
+    simulateBridge,
+  } = useGetNexus();
 
   useEffect(() => {
     async function fetchData() {
@@ -267,7 +277,24 @@ export default function DashboardPage() {
                                 {item.chain.name}
                               </div>
                               <div className="text-gray-600 dark:text-gray-400">
-                                Balance: {item.balance}
+                                Balance: {item.balance}{' '}
+                                <Button
+                                  onClick={async () => {
+                                    const simulationResult =
+                                      await simulateBridge(
+                                        balance.symbol as SUPPORTED_TOKENS,
+                                        '1'
+                                      );
+                                    console.log(simulationResult);
+                                    const result = await bridge(
+                                      balance.symbol as SUPPORTED_TOKENS,
+                                      '1'
+                                    );
+                                    console.log(result);
+                                  }}
+                                >
+                                  Bridge
+                                </Button>
                               </div>
                               <div className="text-gray-600 dark:text-gray-400">
                                 Fiat: $

@@ -1,4 +1,4 @@
-import { SplitManager } from '../generated/src/Handlers.gen';
+import { SplitManager, NexusVault } from '../generated/src/Handlers.gen';
 import { handlerContext } from 'generated';
 
 async function getOrCreateUserActivity(
@@ -348,6 +348,213 @@ SplitManager.DebtPaid.handler(async ({ event, context }) => {
     status: 'success',
     blockNumber: BigInt(event.block.number),
     txType: 'PayDebt',
+  };
+
+  context.Transaction.set(transaction);
+});
+
+NexusVault.Deposit.handler(async ({ event, context }) => {
+  const { requestHash, from, gasRefunded } = event.params;
+
+  const deposit = {
+    id: `${event.transaction.hash}-${event.logIndex}`,
+    requestHash: requestHash,
+    from: from.toLowerCase(),
+    gasRefunded,
+    timestamp: BigInt(event.block.timestamp),
+    blockNumber: BigInt(event.block.number),
+    txHash: event.transaction.hash,
+    chainId: event.chainId,
+  };
+
+  context.BridgeDeposit.set(deposit);
+
+  let userActivity = await getOrCreateUserActivity(context, from.toLowerCase());
+  userActivity.transactionCount += 1;
+  userActivity.totalGasSpent += BigInt(event.transaction.gasPrice || 0);
+  context.UserActivity.set(userActivity);
+
+  const transaction = {
+    id: `${event.transaction.hash}-${event.logIndex}-deposit`,
+    from_id: from.toLowerCase(),
+    to: event.srcAddress.toLowerCase(),
+    amount: 0n,
+    token: '',
+    gasUsed: BigInt(event.transaction.gasPrice || 0),
+    gasPrice: BigInt(event.transaction.gasPrice || 0),
+    timestamp: BigInt(event.block.timestamp),
+    chainId: event.chainId,
+    status: 'success',
+    blockNumber: BigInt(event.block.number),
+    txType: 'BridgeDeposit',
+  };
+
+  context.Transaction.set(transaction);
+});
+
+NexusVault.Fill.handler(async ({ event, context }) => {
+  const { requestHash, from, solver } = event.params;
+
+  const fill = {
+    id: `${event.transaction.hash}-${event.logIndex}`,
+    requestHash: requestHash,
+    from: from.toLowerCase(),
+    solver: solver.toLowerCase(),
+    timestamp: BigInt(event.block.timestamp),
+    blockNumber: BigInt(event.block.number),
+    txHash: event.transaction.hash,
+    chainId: event.chainId,
+  };
+
+  context.BridgeFill.set(fill);
+
+  let solverActivity = await getOrCreateUserActivity(
+    context,
+    solver.toLowerCase()
+  );
+  solverActivity.transactionCount += 1;
+  solverActivity.totalGasSpent += BigInt(event.transaction.gasPrice || 0);
+  context.UserActivity.set(solverActivity);
+
+  const transaction = {
+    id: `${event.transaction.hash}-${event.logIndex}-fill`,
+    from_id: solver.toLowerCase(),
+    to: event.srcAddress.toLowerCase(),
+    amount: 0n,
+    token: '',
+    gasUsed: BigInt(event.transaction.gasPrice || 0),
+    gasPrice: BigInt(event.transaction.gasPrice || 0),
+    timestamp: BigInt(event.block.timestamp),
+    chainId: event.chainId,
+    status: 'success',
+    blockNumber: BigInt(event.block.number),
+    txType: 'BridgeFill',
+  };
+
+  context.Transaction.set(transaction);
+});
+
+NexusVault.GasOverheadUpdate.handler(async ({ event, context }) => {
+  const { _function, overhead } = event.params;
+
+  const gasConfig = {
+    id: `${event.chainId}-${_function}`,
+    functionType: Number(_function),
+    overhead: BigInt(overhead),
+    updatedAt: BigInt(event.block.timestamp),
+    blockNumber: BigInt(event.block.number),
+    txHash: event.transaction.hash,
+    chainId: event.chainId,
+  };
+
+  context.BridgeGasConfig.set(gasConfig);
+});
+
+NexusVault.GasPriceUpdate.handler(async ({ event, context }) => {
+  const { gasPrice } = event.params;
+
+  const gasPriceConfig = {
+    id: `${event.chainId}-latest`,
+    gasPrice: BigInt(gasPrice),
+    updatedAt: BigInt(event.block.timestamp),
+    blockNumber: BigInt(event.block.number),
+    txHash: event.transaction.hash,
+    chainId: event.chainId,
+  };
+
+  context.BridgeGasPrice.set(gasPriceConfig);
+});
+
+NexusVault.ReceiveETH.handler(async ({ event, context }) => {
+  const { from, amount } = event.params;
+
+  const receiveETH = {
+    id: `${event.transaction.hash}-${event.logIndex}`,
+    from: from.toLowerCase(),
+    amount: BigInt(amount),
+    timestamp: BigInt(event.block.timestamp),
+    blockNumber: BigInt(event.block.number),
+    txHash: event.transaction.hash,
+    chainId: event.chainId,
+  };
+
+  context.BridgeReceiveETH.set(receiveETH);
+});
+
+NexusVault.Settle.handler(async ({ event, context }) => {
+  const { nonce, solver, token, amount } = event.params;
+
+  const settle = {
+    id: `${event.transaction.hash}-${event.logIndex}`,
+    nonce: BigInt(nonce),
+    solvers: solver.map((s) => s.toLowerCase()),
+    tokens: token.map((t) => t.toLowerCase()),
+    amounts: amount.map((a) => BigInt(a)),
+    timestamp: BigInt(event.block.timestamp),
+    blockNumber: BigInt(event.block.number),
+    txHash: event.transaction.hash,
+    chainId: event.chainId,
+  };
+
+  context.BridgeSettle.set(settle);
+
+  for (let i = 0; i < solver.length; i++) {
+    const transaction = {
+      id: `${event.transaction.hash}-${event.logIndex}-settle-${i}`,
+      from_id: solver[i].toLowerCase(),
+      to: event.srcAddress.toLowerCase(),
+      amount: BigInt(amount[i]),
+      token: token[i].toLowerCase(),
+      gasUsed: BigInt(event.transaction.gasPrice || 0),
+      gasPrice: BigInt(event.transaction.gasPrice || 0),
+      timestamp: BigInt(event.block.timestamp),
+      chainId: event.chainId,
+      status: 'success',
+      blockNumber: BigInt(event.block.number),
+      txType: 'BridgeSettle',
+    };
+
+    context.Transaction.set(transaction);
+  }
+});
+
+NexusVault.Withdraw.handler(async ({ event, context }) => {
+  const { to, token, amount } = event.params;
+
+  const withdraw = {
+    id: `${event.transaction.hash}-${event.logIndex}`,
+    to: to.toLowerCase(),
+    token: token.toLowerCase(),
+    amount: BigInt(amount),
+    timestamp: BigInt(event.block.timestamp),
+    blockNumber: BigInt(event.block.number),
+    txHash: event.transaction.hash,
+    chainId: event.chainId,
+  };
+
+  context.BridgeWithdraw.set(withdraw);
+
+  let userActivity = await getOrCreateUserActivity(context, to.toLowerCase());
+  if (token === '0x0000000000000000000000000000000000000000') {
+    userActivity.totalReceivedETH += BigInt(amount);
+  } else {
+    userActivity.totalReceivedUSD += BigInt(amount);
+  }
+  context.UserActivity.set(userActivity);
+
+  const transaction = {
+    id: `${event.transaction.hash}-${event.logIndex}-withdraw`,
+    from_id: event.srcAddress.toLowerCase(),
+    to: to.toLowerCase(),
+    amount: BigInt(amount),
+    token: token.toLowerCase(),
+    gasUsed: BigInt(event.transaction.gasPrice || 0),
+    gasPrice: BigInt(event.transaction.gasPrice || 0),
+    timestamp: BigInt(event.block.timestamp),
+    chainId: event.chainId,
+    status: 'success',
+    blockNumber: BigInt(event.block.number),
+    txType: 'BridgeWithdraw',
   };
 
   context.Transaction.set(transaction);
