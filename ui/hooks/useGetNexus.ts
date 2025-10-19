@@ -7,8 +7,10 @@ import {
   UserAsset,
   EthereumProvider,
   SUPPORTED_TOKENS,
+  SUPPORTED_CHAINS_IDS,
 } from '@avail-project/nexus-widgets';
 import { SPLIT_MANAGER_ABI } from '@/constants/contract-abi';
+import { Split } from '@/types/web3';
 
 export function useGetNexus() {
   const [error, setError] = useState<Error | null>(null);
@@ -44,29 +46,56 @@ export function useGetNexus() {
     }
   };
 
-  const simulateBridgeAndExecute = async (
+  const bridge = async (
     token: SUPPORTED_TOKENS,
     amount: string,
-    splitId: string,
+    toChainId: number
+  ) => {
+    try {
+      return await nexus.bridge({
+        amount: Number(amount),
+        chainId: toChainId as SUPPORTED_CHAINS_IDS,
+        token: token,
+      });
+    } catch (error) {
+      console.error('Error bridging:', error);
+      setError(error instanceof Error ? error : new Error('Failed to bridge'));
+      throw error;
+    }
+  };
+
+  const simulateBridgeAndExecute = async (
+    token: SUPPORTED_TOKENS,
+    debt: string,
+    split: Split,
     creditor: string
   ) => {
     try {
+      const SEPOLIA_CHAIN_ID = 11155111;
+
       return await nexus.simulateBridgeAndExecute({
-        amount,
-        toChainId: 11155111,
+        amount: debt,
+        toChainId: SEPOLIA_CHAIN_ID,
         token: token,
         execute: {
           contractAbi: SPLIT_MANAGER_ABI,
           functionName: 'payDebt',
           contractAddress: process.env
             .NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS as `0x${string}`,
-          value: token === 'ETH' ? amount : undefined,
-          buildFunctionParams: (params) => {
+          buildFunctionParams: () => {
             return {
-              functionParams: [splitId, creditor, amount],
-              value: params === 'ETH' ? amount : undefined,
+              functionParams: [split.id, creditor, debt],
+              ...(token === 'ETH' ? { value: debt } : {}),
             };
           },
+          ...(token !== 'ETH'
+            ? {
+                tokenApproval: {
+                  token: token,
+                  amount: debt,
+                },
+              }
+            : {}),
         },
       });
     } catch (error) {
@@ -79,68 +108,72 @@ export function useGetNexus() {
     }
   };
 
-  const bridgeAndExecute = async (
+  const payDebt = async (
     token: SUPPORTED_TOKENS,
-    amount: string,
-    splitId: string,
+    debt: bigint,
+    split: Split,
     creditor: string
   ) => {
     try {
+      const SEPOLIA_CHAIN_ID = 11155111;
+
+      const tokenBalance = unifiedBalance?.find(
+        (asset) => asset.symbol === token
+      );
+
+      const debtAmount = Number(debt);
+      const availableBalance = tokenBalance
+        ? parseFloat(tokenBalance.balance)
+        : 0;
+
+      if (availableBalance < debtAmount) {
+        throw new Error(
+          `Insufficient ${token} balance. You have ${availableBalance} but need ${debtAmount}`
+        );
+      }
+
+      const executeParams = {
+        contractAbi: SPLIT_MANAGER_ABI,
+        functionName: 'payDebt',
+        contractAddress: process.env
+          .NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS as `0x${string}`,
+        buildFunctionParams: () => {
+          return {
+            functionParams: [split.id, creditor, debt],
+            ...(token === 'ETH' ? { value: debt } : {}),
+          };
+        },
+        ...(token !== 'ETH'
+          ? {
+              tokenApproval: {
+                token: token,
+                amount: debt,
+              },
+            }
+          : {}),
+      };
+
       return await nexus.bridgeAndExecute({
-        amount,
-        toChainId: 11155420,
+        amount: Number(debt),
+        toChainId: SEPOLIA_CHAIN_ID,
         token: token,
         execute: {
           contractAbi: SPLIT_MANAGER_ABI,
           functionName: 'payDebt',
           contractAddress: process.env
             .NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS as `0x${string}`,
-          value: token === 'ETH' ? amount : undefined,
-          buildFunctionParams: (params) => {
-            return {
-              functionParams: [splitId, creditor, amount],
-              value: params === 'ETH' ? amount : undefined,
-            };
+          buildFunctionParams: () => {
+            return { functionParams: [split.id, creditor, debt] };
           },
         },
+        waitForReceipt: true,
       });
     } catch (error) {
-      console.error('Error bridging and executing:', error);
+      console.error('Error paying debt:', error);
       setError(
-        error instanceof Error
-          ? error
-          : new Error('Failed to bridge and execute')
+        error instanceof Error ? error : new Error('Failed to pay debt')
       );
-    }
-  };
-
-  const simulateBridge = async (token: SUPPORTED_TOKENS, amount: string) => {
-    try {
-      return await nexus.simulateBridge({
-        token,
-        amount,
-        chainId: 11155420,
-        sourceChains: [11155111],
-      });
-    } catch (error) {
-      console.error('Error simulating bridge:', error);
-      setError(
-        error instanceof Error ? error : new Error('Failed to simulate bridge')
-      );
-    }
-  };
-
-  const bridge = async (token: SUPPORTED_TOKENS, amount: string) => {
-    try {
-      return await nexus.bridge({
-        token,
-        amount,
-        chainId: 11155420,
-        sourceChains: [11155111],
-      });
-    } catch (error) {
-      console.error('Error bridging:', error);
-      setError(error instanceof Error ? error : new Error('Failed to bridge'));
+      throw error;
     }
   };
 
@@ -153,8 +186,7 @@ export function useGetNexus() {
     getUnifiedBalance,
     initSDK,
     simulateBridgeAndExecute,
-    bridgeAndExecute,
+    payDebt,
     bridge,
-    simulateBridge,
   };
 }

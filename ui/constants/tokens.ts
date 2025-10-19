@@ -11,7 +11,7 @@ export const TOKEN_DECIMALS: Record<string, number> = {
 };
 
 export const SUPPORTED_TOKENS_BY_SYMBOL = ['USDC', 'ETH'] as SUPPORTED_TOKENS[];
-export const SUPPORTED_CHAINS = [8453, 11155111, 80002, 11155420, 421614];
+export const SUPPORTED_CHAINS = [11155111, 11155420, 421614, 84532] as const;
 
 export const getUSDCTokenAddress = (chainId: number) => {
   switch (chainId) {

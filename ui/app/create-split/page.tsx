@@ -14,10 +14,10 @@ import { Button } from '@/components/ui/Button';
 import { SPLIT_MANAGER_ABI } from '@/constants/contract-abi';
 import { useRouter } from 'next/navigation';
 import { sepolia } from 'wagmi/chains';
+import { zeroAddress } from 'viem';
 
 const SPLIT_CONTRACT_ADDRESS = (process.env
-  .NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS ||
-  '0x0000000000000000000000000000000000000000') as `0x${string}`;
+  .NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS || zeroAddress) as `0x${string}`;
 
 const TOKENS = [
   { name: 'ETH', address: '0x0000000000000000000000000000000000000000' },
@@ -54,7 +54,6 @@ export default function CreateSplitPage() {
       return;
     }
 
-    // Parse member addresses
     const memberAddresses = members
       .split(',')
       .map((addr) => addr.trim().toLowerCase())
@@ -65,7 +64,6 @@ export default function CreateSplitPage() {
       return;
     }
 
-    // Check if creator is in the members list
     const creatorAddress = address.toLowerCase();
     if (memberAddresses.includes(creatorAddress)) {
       setValidationError(
@@ -74,7 +72,6 @@ export default function CreateSplitPage() {
       return;
     }
 
-    // Check for duplicate addresses
     const uniqueAddresses = new Set(memberAddresses);
     if (uniqueAddresses.size !== memberAddresses.length) {
       setValidationError(
@@ -98,7 +95,6 @@ export default function CreateSplitPage() {
     }
   };
 
-  // Redirect to dashboard on success
   if (isSuccess) {
     setTimeout(() => {
       router.push('/dashboard');
