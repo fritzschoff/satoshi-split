@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 import { Split } from '@/types/web3';
+import { zeroAddress } from 'viem';
 
 interface SplitsListProps {
   splits: Split[];
@@ -62,7 +63,9 @@ export function SplitsList({ splits, currentAddress }: SplitsListProps) {
                     Total Debt
                   </div>
                   <div className="font-semibold text-gray-900 dark:text-white">
-                    ${(Number(split.totalDebt) / 1e6).toFixed(2)}
+                    {split.defaultToken === zeroAddress
+                      ? `${(Number(split.totalDebt) / 1e18).toFixed(4)} ETH`
+                      : `$${(Number(split.totalDebt) / 1e6).toFixed(2)}`}
                   </div>
                 </div>
               </div>

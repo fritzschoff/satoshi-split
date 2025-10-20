@@ -84,6 +84,44 @@ export const getUserSplitsQuery = `
   }
 `;
 
+export const getAllSplitsQuery = `
+  query GetAllSplits($limit: Int = 100, $offset: Int = 0) {
+    Split(
+      order_by: { createdAt: desc }
+      limit: $limit
+      offset: $offset
+    ) {
+      id
+      creator
+      members
+      defaultToken
+      createdAt
+      totalDebt
+      spendings {
+        id
+        spendingId
+        title
+        payer
+        amount
+        forWho
+        timestamp
+        token
+        txHash
+      }
+      debts {
+        id
+        debtor
+        creditor
+        amount
+        token
+        isPaid
+        paidAt
+        txHash
+      }
+    }
+  }
+`;
+
 export const getBridgeDepositsQuery = `
   query GetBridgeDeposits($from: String, $limit: Int = 100) {
     BridgeDeposit(

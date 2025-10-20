@@ -19,7 +19,6 @@ interface TokenBalanceCardProps {
   isBridging: boolean;
   bridgeError: string | null;
   onSetSelectedToken: (token: SUPPORTED_TOKENS) => void;
-  onSetSourceChainId: (chainId: number) => void;
   onSetDestinationChainId: (chainId: number | null) => void;
   onSetBridgeAmount: (amount: string) => void;
   onMaxAmount: () => void;
@@ -36,7 +35,6 @@ export function TokenBalanceCard({
   isBridging,
   bridgeError,
   onSetSelectedToken,
-  onSetSourceChainId,
   onSetDestinationChainId,
   onSetBridgeAmount,
   onMaxAmount,
@@ -170,7 +168,9 @@ export function TokenBalanceCard({
                         }}
                         className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                       >
-                        <option value="">Select chain...</option>
+                        <option key="select-chain" value="">
+                          Select chain...
+                        </option>
                         {balance.breakdown
                           ?.filter((item) =>
                             SUPPORTED_CHAINS.includes(

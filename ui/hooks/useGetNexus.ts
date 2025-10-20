@@ -46,6 +46,18 @@ export function useGetNexus() {
     }
   };
 
+  const getBridgeFees = async (
+    token: SUPPORTED_TOKENS,
+    amount: string,
+    toChainId: number
+  ) => {
+    return await nexus.simulateBridge({
+      amount: Number(amount),
+      chainId: toChainId as SUPPORTED_CHAINS_IDS,
+      token: token,
+    });
+  };
+
   const bridge = async (
     token: SUPPORTED_TOKENS,
     amount: string,
@@ -132,27 +144,6 @@ export function useGetNexus() {
         );
       }
 
-      const executeParams = {
-        contractAbi: SPLIT_MANAGER_ABI,
-        functionName: 'payDebt',
-        contractAddress: process.env
-          .NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS as `0x${string}`,
-        buildFunctionParams: () => {
-          return {
-            functionParams: [split.id, creditor, debt],
-            ...(token === 'ETH' ? { value: debt } : {}),
-          };
-        },
-        ...(token !== 'ETH'
-          ? {
-              tokenApproval: {
-                token: token,
-                amount: debt,
-              },
-            }
-          : {}),
-      };
-
       return await nexus.bridgeAndExecute({
         amount: Number(debt),
         toChainId: SEPOLIA_CHAIN_ID,
@@ -188,5 +179,6 @@ export function useGetNexus() {
     simulateBridgeAndExecute,
     payDebt,
     bridge,
+    getBridgeFees,
   };
 }

@@ -37,6 +37,16 @@ export function Header() {
                 Dashboard
               </Link>
               <Link
+                href="/splits"
+                className={`text-sm font-medium transition-colors hover:text-blue-600 dark:hover:text-blue-400 ${
+                  isActive('/splits')
+                    ? 'text-blue-600 dark:text-blue-400'
+                    : 'text-gray-600 dark:text-gray-300'
+                }`}
+              >
+                Splits
+              </Link>
+              <Link
                 href="/create-split"
                 className={`text-sm font-medium transition-colors hover:text-blue-600 dark:hover:text-blue-400 ${
                   isActive('/create-split')

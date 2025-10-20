@@ -17,7 +17,15 @@ import { useAccount } from 'wagmi';
 import { NexusProvider } from '@avail-project/nexus-widgets';
 import { ThemeProvider, useTheme } from './ThemeProvider';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 2,
+      refetchOnWindowFocus: true,
+      retry: 2,
+    },
+  },
+});
 
 function WalletCookieSync() {
   const { address, isConnected } = useAccount();
