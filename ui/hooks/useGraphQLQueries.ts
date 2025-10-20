@@ -33,6 +33,8 @@ export const activityKeys = {
 };
 
 export function useGetSplit(id: string) {
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: splitKeys.detail(id),
     queryFn: async () => {
@@ -43,6 +45,22 @@ export function useGetSplit(id: string) {
       return data.Split?.[0] || null;
     },
     enabled: !!id,
+    initialData: () => {
+      const cachedSplit = queryClient.getQueryData<Split>(splitKeys.detail(id));
+      if (cachedSplit) {
+        return cachedSplit;
+      }
+
+      const allSplits = queryClient.getQueryData<Split[]>(splitKeys.list());
+      if (allSplits) {
+        return allSplits.find((split) => split.id === id) || undefined;
+      }
+
+      return undefined;
+    },
+    initialDataUpdatedAt: () => {
+      return queryClient.getQueryState(splitKeys.detail(id))?.dataUpdatedAt;
+    },
   });
 }
 
@@ -95,7 +113,7 @@ export function useGetBridgeActivity(address?: string) {
         getUserBridgeActivityQuery,
         {
           address: address!.toLowerCase(),
-          limit: 10,
+          limit: 1000,
         }
       );
       return data;
@@ -262,7 +280,7 @@ export function useOptimisticCreateSplit() {
         optimisticSplit
       );
 
-      return { previousSplits };
+      return { previousSplits, tempId: newSplit.id };
     },
     onError: (err, newSplit, context) => {
       if (context?.previousSplits) {
@@ -270,10 +288,47 @@ export function useOptimisticCreateSplit() {
       }
       queryClient.removeQueries({ queryKey: splitKeys.detail(newSplit.id) });
     },
+    onSuccess: (split, variables, context) => {
+      if (context?.tempId && context.tempId !== split.id) {
+        queryClient.removeQueries({
+          queryKey: splitKeys.detail(context.tempId),
+        });
+      }
+    },
     onSettled: () => {
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: splitKeys.lists() });
       }, 3000);
     },
   });
+}
+
+export function useUpdateSplitIdAfterCreation() {
+  const queryClient = useQueryClient();
+
+  return (tempId: string, realId: string) => {
+    const tempSplit = queryClient.getQueryData<Split>(splitKeys.detail(tempId));
+
+    if (tempSplit) {
+      queryClient.setQueryData<Split>(splitKeys.detail(realId), {
+        ...tempSplit,
+        id: realId,
+      });
+
+      const allSplits = queryClient.getQueryData<Split[]>(splitKeys.list());
+      if (allSplits) {
+        const updatedSplits = allSplits.map((split) =>
+          split.id === tempId ? { ...split, id: realId } : split
+        );
+        queryClient.setQueryData<Split[]>(splitKeys.list(), updatedSplits);
+      }
+
+      queryClient.removeQueries({ queryKey: splitKeys.detail(tempId) });
+    }
+
+    setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: splitKeys.detail(realId) });
+      queryClient.invalidateQueries({ queryKey: splitKeys.lists() });
+    }, 3000);
+  };
 }

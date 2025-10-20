@@ -1,5 +1,10 @@
 import { SUPPORTED_TOKENS } from '@avail-project/nexus-widgets';
 
+export const TOKENS = [
+  { name: 'ETH', address: '0x0000000000000000000000000000000000000000' },
+  { name: 'USDC', address: '0x1c7d4b196cb0c7b01d743fbc6116a902379c7238' },
+];
+
 export const TOKEN_SYMBOLS: Record<string, string> = {
   '0x1c7d4b196cb0c7b01d743fbc6116a902379c7238': 'USDC',
   '0x0000000000000000000000000000000000000000': 'ETH',

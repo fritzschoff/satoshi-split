@@ -49,7 +49,16 @@ export function SplitOverview({
           <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
             <div className="text-xs text-gray-500 dark:text-gray-400">
               Created:{' '}
-              {new Date(Number(split.createdAt) * 1000).toLocaleDateString()}
+              {new Date(Number(split.createdAt) * 1000).toLocaleString(
+                'en-US',
+                {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                }
+              )}
             </div>
           </div>
         </div>

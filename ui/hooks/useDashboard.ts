@@ -45,7 +45,7 @@ export function useDashboard() {
     setSourceChainId(newChainId);
     if (chainId !== newChainId && switchChain) {
       try {
-        await switchChain({ chainId: newChainId });
+        switchChain({ chainId: newChainId });
       } catch (error) {
         console.error('Error switching chain:', error);
         setBridgeError('Failed to switch chain');

@@ -101,7 +101,6 @@ export function UnifiedBalanceSection({
             isBridging={isBridging}
             bridgeError={bridgeError}
             onSetSelectedToken={onSetSelectedToken}
-            onSetSourceChainId={onSetSourceChainId}
             onSetDestinationChainId={onSetDestinationChainId}
             onSetBridgeAmount={onSetBridgeAmount}
             onMaxAmount={onMaxAmount}

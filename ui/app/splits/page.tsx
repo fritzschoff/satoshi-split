@@ -9,6 +9,7 @@ import { Split } from '@/types/web3';
 import { SplitCard } from '@/components/splits/SplitCard';
 import { Card, CardContent } from '@/components/ui/Card';
 import { useGetAllSplits } from '@/hooks/useGraphQLQueries';
+import { TOKEN_SYMBOLS, TOKEN_DECIMALS } from '@/constants/tokens';
 
 export default function SplitsPage() {
   const { address, isConnected } = useAccount();
@@ -46,6 +47,18 @@ export default function SplitsPage() {
     setFilteredSplits(filtered);
   }, [filterType, searchTerm, splits, address]);
 
+  const debtByToken = splits.reduce((acc, split) => {
+    const tokenAddress = split.defaultToken.toLowerCase();
+    const debt = Number(split.totalDebt);
+
+    if (!acc[tokenAddress]) {
+      acc[tokenAddress] = 0;
+    }
+    acc[tokenAddress] += debt;
+
+    return acc;
+  }, {} as Record<string, number>);
+
   const stats = {
     total: splits.length,
     mySplits: address
@@ -60,7 +73,7 @@ export default function SplitsPage() {
           (split) => split.creator.toLowerCase() === address.toLowerCase()
         ).length
       : 0,
-    totalDebt: splits.reduce((acc, split) => acc + Number(split.totalDebt), 0),
+    debtByToken,
   };
 
   if (isLoading) {
@@ -135,8 +148,30 @@ export default function SplitsPage() {
               <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                 Total Debt
               </div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                ${(stats.totalDebt / 1e6).toFixed(2)}
+              <div className="space-y-1">
+                {Object.entries(stats.debtByToken).map(
+                  ([tokenAddress, debt]) => {
+                    const symbol = TOKEN_SYMBOLS[tokenAddress] || 'Unknown';
+                    const decimals = TOKEN_DECIMALS[tokenAddress] || 18;
+                    const formattedDebt = (
+                      debt / Math.pow(10, decimals)
+                    ).toFixed(decimals === 6 ? 2 : 4);
+
+                    return (
+                      <div
+                        key={tokenAddress}
+                        className="text-lg font-bold text-gray-900 dark:text-white"
+                      >
+                        {formattedDebt} {symbol}
+                      </div>
+                    );
+                  }
+                )}
+                {Object.keys(stats.debtByToken).length === 0 && (
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    0
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

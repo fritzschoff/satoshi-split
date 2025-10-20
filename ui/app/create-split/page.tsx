@@ -1,105 +1,28 @@
 'use client';
 
-import { useState } from 'react';
-import {
-  useAccount,
-  useWriteContract,
-  useWaitForTransactionReceipt,
-  useChainId,
-  useSwitchChain,
-} from 'wagmi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { SPLIT_MANAGER_ABI } from '@/constants/contract-abi';
-import { useRouter } from 'next/navigation';
 import { sepolia } from 'wagmi/chains';
-import { zeroAddress } from 'viem';
-
-const SPLIT_CONTRACT_ADDRESS = (process.env
-  .NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS || zeroAddress) as `0x${string}`;
-
-const TOKENS = [
-  { name: 'ETH', address: '0x0000000000000000000000000000000000000000' },
-  { name: 'USDC', address: '0x1c7d4b196cb0c7b01d743fbc6116a902379c7238' },
-];
+import { useCreateSplit } from '@/hooks/useCreateSplit';
 
 export default function CreateSplitPage() {
-  const { isConnected, address } = useAccount();
-  const chainId = useChainId();
-  const { switchChain } = useSwitchChain();
-  const router = useRouter();
-  const [members, setMembers] = useState<string>('');
-  const [selectedToken, setSelectedToken] = useState(TOKENS[0].address);
-  const [validationError, setValidationError] = useState<string>('');
-
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
-    hash,
-  });
-
-  const isOnSepolia = chainId === sepolia.id;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setValidationError('');
-
-    if (!isConnected || !address) {
-      alert('Please connect your wallet');
-      return;
-    }
-
-    if (!isOnSepolia) {
-      setValidationError('Please switch to Sepolia network to create a split');
-      return;
-    }
-
-    const memberAddresses = members
-      .split(',')
-      .map((addr) => addr.trim().toLowerCase())
-      .filter((addr) => addr.length > 0 && addr.startsWith('0x'));
-
-    if (memberAddresses.length === 0) {
-      setValidationError('Please add at least one member address');
-      return;
-    }
-
-    const creatorAddress = address.toLowerCase();
-    if (memberAddresses.includes(creatorAddress)) {
-      setValidationError(
-        'You cannot add yourself as a member. You are automatically added as the admin.'
-      );
-      return;
-    }
-
-    const uniqueAddresses = new Set(memberAddresses);
-    if (uniqueAddresses.size !== memberAddresses.length) {
-      setValidationError(
-        'Duplicate addresses detected. Each member can only be added once.'
-      );
-      return;
-    }
-
-    try {
-      writeContract({
-        address: SPLIT_CONTRACT_ADDRESS,
-        abi: SPLIT_MANAGER_ABI,
-        functionName: 'createSplit',
-        args: [
-          memberAddresses as `0x${string}`[],
-          selectedToken as `0x${string}`,
-        ],
-      });
-    } catch (err) {
-      console.error('Error creating split:', err);
-    }
-  };
-
-  if (isSuccess) {
-    setTimeout(() => {
-      router.push('/dashboard');
-    }, 2000);
-  }
+  const {
+    isConnected,
+    members,
+    setMembers,
+    selectedToken,
+    setSelectedToken,
+    validationError,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+    isOnSepolia,
+    switchChain,
+    handleSubmit,
+    TOKENS,
+  } = useCreateSplit();
 
   if (!isConnected) {
     return (
@@ -184,7 +107,7 @@ export default function CreateSplitPage() {
               {validationError && (
                 <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                   <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                    ⚠️ {validationError}
+                    {validationError}
                   </p>
                 </div>
               )}
@@ -200,7 +123,7 @@ export default function CreateSplitPage() {
               {isSuccess && (
                 <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                   <p className="text-sm text-green-800 dark:text-green-200">
-                    ✅ Split created successfully! Redirecting to dashboard...
+                    Split created successfully! Redirecting to split page...
                   </p>
                 </div>
               )}
