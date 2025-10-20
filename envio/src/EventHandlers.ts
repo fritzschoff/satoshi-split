@@ -353,6 +353,183 @@ SplitManager.DebtPaid.handler(async ({ event, context }) => {
   context.Transaction.set(transaction);
 });
 
+SplitManager.SpendingRemoved.handler(async ({ event, context }) => {
+  const { splitId, spendingId, removedBy } = event.params;
+
+  const spendingDbId = `${splitId.toString()}-${spendingId.toString()}`;
+  const spending = await context.Spending.get(spendingDbId);
+
+  if (!spending) {
+    return;
+  }
+
+  const sharePerPerson =
+    BigInt(spending.amount) / BigInt(spending.forWho.length);
+
+  for (const participant of spending.forWho) {
+    const participantLower = participant.toLowerCase();
+    const payerLower = spending.payer.toLowerCase();
+
+    if (participantLower === payerLower) continue;
+
+    const debtId = `${splitId.toString()}-${participantLower}-${payerLower}`;
+    let debt = await context.Debt.get(debtId);
+
+    if (debt && BigInt(debt.amount) >= sharePerPerson) {
+      const newAmount = BigInt(debt.amount) - sharePerPerson;
+      const updatedDebt = {
+        ...debt,
+        amount: newAmount,
+        isPaid: newAmount <= 0n ? true : debt.isPaid,
+      };
+      context.Debt.set(updatedDebt);
+    }
+  }
+
+  const split = await context.Split.get(splitId.toString());
+  if (split) {
+    const totalDebtReduction =
+      sharePerPerson * BigInt(spending.forWho.length - 1);
+    const updatedSplit = {
+      ...split,
+      totalDebt: BigInt(split.totalDebt) - totalDebtReduction,
+    };
+    context.Split.set(updatedSplit);
+  }
+
+  context.Spending.deleteUnsafe(spendingDbId);
+
+  let removerActivity = await getOrCreateUserActivity(
+    context,
+    removedBy.toLowerCase()
+  );
+  removerActivity.transactionCount += 1;
+  removerActivity.totalGasSpent += BigInt(event.transaction.gasPrice || 0);
+  context.UserActivity.set(removerActivity);
+
+  const transaction = {
+    id: event.transaction.hash,
+    from_id: removedBy.toLowerCase(),
+    to: event.srcAddress.toLowerCase(),
+    amount: 0n,
+    token: spending.token,
+    gasUsed: BigInt(event.transaction.gasPrice || 0),
+    gasPrice: BigInt(event.transaction.gasPrice || 0),
+    timestamp: BigInt(event.block.timestamp),
+    chainId: event.chainId,
+    status: 'success',
+    blockNumber: BigInt(event.block.number),
+    txType: 'RemoveSpending',
+  };
+
+  context.Transaction.set(transaction);
+});
+
+SplitManager.MemberAddedToSpending.handler(async ({ event, context }) => {
+  const { splitId, spendingId, member, addedBy } = event.params;
+
+  const spendingDbId = `${splitId.toString()}-${spendingId.toString()}`;
+  let spending = await context.Spending.get(spendingDbId);
+
+  if (!spending) {
+    return;
+  }
+
+  const oldMemberCount = spending.forWho.length;
+  const newMemberCount = oldMemberCount + 1;
+
+  const oldSharePerPerson = BigInt(spending.amount) / BigInt(oldMemberCount);
+  const newSharePerPerson = BigInt(spending.amount) / BigInt(newMemberCount);
+
+  const memberLower = member.toLowerCase();
+  const payerLower = spending.payer.toLowerCase();
+
+  for (const existingMember of spending.forWho) {
+    const existingLower = existingMember.toLowerCase();
+
+    if (existingLower === payerLower) continue;
+
+    const debtId = `${splitId.toString()}-${existingLower}-${payerLower}`;
+    let debt = await context.Debt.get(debtId);
+
+    if (debt && BigInt(debt.amount) >= oldSharePerPerson) {
+      const updatedDebt = {
+        ...debt,
+        amount: BigInt(debt.amount) - oldSharePerPerson + newSharePerPerson,
+      };
+      context.Debt.set(updatedDebt);
+    }
+  }
+
+  const updatedSpending = {
+    ...spending,
+    forWho: [...spending.forWho, memberLower],
+  };
+  context.Spending.set(updatedSpending);
+
+  if (memberLower !== payerLower) {
+    const newDebtId = `${splitId.toString()}-${memberLower}-${payerLower}`;
+    let newDebt = await context.Debt.get(newDebtId);
+
+    if (newDebt) {
+      const updatedNewDebt = {
+        ...newDebt,
+        amount: BigInt(newDebt.amount) + newSharePerPerson,
+        isPaid: false,
+      };
+      context.Debt.set(updatedNewDebt);
+    } else {
+      const createdDebt = {
+        id: newDebtId,
+        split_id: splitId.toString(),
+        debtor: memberLower,
+        creditor: payerLower,
+        amount: newSharePerPerson,
+        token: spending.token,
+        isPaid: false,
+        paidAt: null,
+        txHash: null,
+      };
+      context.Debt.set(createdDebt);
+    }
+  }
+
+  const split = await context.Split.get(splitId.toString());
+  if (split) {
+    const totalDebtIncrease = newSharePerPerson;
+    const updatedSplit = {
+      ...split,
+      totalDebt: BigInt(split.totalDebt) + totalDebtIncrease,
+    };
+    context.Split.set(updatedSplit);
+  }
+
+  let adderActivity = await getOrCreateUserActivity(
+    context,
+    addedBy.toLowerCase()
+  );
+  adderActivity.transactionCount += 1;
+  adderActivity.totalGasSpent += BigInt(event.transaction.gasPrice || 0);
+  context.UserActivity.set(adderActivity);
+
+  const transaction = {
+    id: event.transaction.hash,
+    from_id: addedBy.toLowerCase(),
+    to: event.srcAddress.toLowerCase(),
+    amount: 0n,
+    token: spending.token,
+    gasUsed: BigInt(event.transaction.gasPrice || 0),
+    gasPrice: BigInt(event.transaction.gasPrice || 0),
+    timestamp: BigInt(event.block.timestamp),
+    chainId: event.chainId,
+    status: 'success',
+    blockNumber: BigInt(event.block.number),
+    txType: 'AddParticipant',
+  };
+
+  context.Transaction.set(transaction);
+});
+
 NexusVault.Deposit.handler(async ({ event, context }) => {
   const { requestHash, from, gasRefunded } = event.params;
 

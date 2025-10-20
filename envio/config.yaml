@@ -10,6 +10,8 @@ contracts:
       - event: 'MemberAdded(uint256 indexed splitId, address indexed member)'
       - event: 'MemberRemoved(uint256 indexed splitId, address indexed member)'
       - event: 'SpendingAdded(uint256 indexed splitId, uint256 spendingId, string title, address indexed payer, uint256 amount, address[] forWho, address token)'
+      - event: 'SpendingRemoved(uint256 indexed splitId, uint256 indexed spendingId, address indexed removedBy)'
+      - event: 'MemberAddedToSpending(uint256 indexed splitId, uint256 indexed spendingId, address indexed member, address addedBy)'
       - event: 'DebtPaid(uint256 indexed splitId, address indexed debtor, address indexed creditor, uint256 amount, address token)'
   - name: NexusVault
     handler: src/EventHandlers.ts
@@ -34,7 +36,7 @@ networks:
     contracts:
       - name: SplitManager
         address:
-          - '0xDd09FA133e806307a3574E9361B7F3A56dD2448B'
+          - '0x975ca066fa7db04814fcd9bf6088d28e2712617b'
       - name: NexusVault
         address:
           - '0xF0111EdE031a4377C34A4AD900f1E633E41055Dc'
