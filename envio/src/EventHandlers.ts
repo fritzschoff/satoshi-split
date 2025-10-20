@@ -487,8 +487,8 @@ SplitManager.MemberAddedToSpending.handler(async ({ event, context }) => {
         amount: newSharePerPerson,
         token: spending.token,
         isPaid: false,
-        paidAt: null,
-        txHash: null,
+        paidAt: undefined,
+        txHash: undefined,
       };
       context.Debt.set(createdDebt);
     }
