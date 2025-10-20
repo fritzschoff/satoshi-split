@@ -396,7 +396,7 @@ contract SplitManagerTest is Test {
         mockUSDC.approve(address(splitManager), 200e6);
         
         vm.expectRevert("Invalid payment amount");
-        splitManager.payDebt(splitId, creator, 200e6); // Trying to pay 200 when only owes 100
+        splitManager.payDebt(splitId, creator, 200e6); 
         
         vm.stopPrank();
     }
