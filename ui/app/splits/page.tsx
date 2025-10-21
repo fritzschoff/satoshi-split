@@ -4,7 +4,7 @@ import { useAccount } from 'wagmi';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Split } from '@/types/web3';
 import { SplitCard } from '@/components/splits/SplitCard';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -14,11 +14,10 @@ import { TOKEN_SYMBOLS, TOKEN_DECIMALS } from '@/constants/tokens';
 export default function SplitsPage() {
   const { address, isConnected } = useAccount();
   const { data: splits = [], isLoading } = useGetAllSplits(100, 0);
-  const [filteredSplits, setFilteredSplits] = useState<Split[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'my' | 'admin'>('all');
 
-  useEffect(() => {
+  const filteredSplits = useMemo(() => {
     let filtered = splits;
 
     if (filterType === 'my' && address) {
@@ -44,7 +43,7 @@ export default function SplitsPage() {
       );
     }
 
-    setFilteredSplits(filtered);
+    return filtered;
   }, [filterType, searchTerm, splits, address]);
 
   const debtByToken = splits.reduce((acc, split) => {

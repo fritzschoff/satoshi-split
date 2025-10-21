@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
 import {
   useNexus,
@@ -8,6 +8,7 @@ import {
   EthereumProvider,
   SUPPORTED_TOKENS,
   SUPPORTED_CHAINS_IDS,
+  RFF,
 } from '@avail-project/nexus-widgets';
 import { SPLIT_MANAGER_ABI } from '@/constants/contract-abi';
 import { Split } from '@/types/web3';
@@ -18,6 +19,8 @@ export function useGetNexus() {
   const [unifiedBalance, setUnifiedBalance] = useState<UserAsset[] | null>(
     null
   );
+  const [myIntents, setMyIntents] = useState<RFF[] | null>(null);
+  const [isInitializationLoading, setIsInitializationLoading] = useState(false);
   const {
     setProvider,
     initializeSdk,
@@ -25,11 +28,19 @@ export function useGetNexus() {
     isSdkInitialized: isInitialized,
   } = useNexus();
 
+  useEffect(() => {
+    if (isInitialized && !myIntents) {
+      getMyIntents();
+    }
+  }, [isInitialized]);
+
   const initSDK = async () => {
+    setIsInitializationLoading(true);
     const provider = await connector?.getProvider();
     setProvider(provider as EthereumProvider);
     await initializeSdk(provider as EthereumProvider);
     getUnifiedBalance();
+    setIsInitializationLoading(false);
   };
 
   const getUnifiedBalance = async () => {
@@ -168,6 +179,12 @@ export function useGetNexus() {
     }
   };
 
+  const getMyIntents = async () => {
+    if (!nexus || !isInitialized) return [];
+    const intents = await nexus.getMyIntents();
+    setMyIntents(intents);
+  };
+
   return {
     nexus,
     isInitialized,
@@ -180,5 +197,8 @@ export function useGetNexus() {
     payDebt,
     bridge,
     getBridgeFees,
+    isInitializationLoading,
+    myIntents,
+    getMyIntents,
   };
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAccount, useSwitchChain } from 'wagmi';
 import { SUPPORTED_TOKENS } from '@avail-project/nexus-widgets';
 import {
@@ -19,8 +19,6 @@ export function useDashboard() {
   const { data: bridgeActivity = null, isLoading: isLoadingBridge } =
     useGetBridgeActivity(address);
 
-  const isLoading = isLoadingActivity || isLoadingSplits || isLoadingBridge;
-
   const {
     unifiedBalance,
     initSDK,
@@ -28,7 +26,11 @@ export function useDashboard() {
     error,
     bridge,
     getBridgeFees,
+    isInitializationLoading,
+    myIntents,
   } = useGetNexus();
+
+  const isLoading = isLoadingActivity || isLoadingSplits || isLoadingBridge;
 
   const [selectedToken, setSelectedToken] = useState<SUPPORTED_TOKENS | null>(
     null
@@ -62,32 +64,20 @@ export function useDashboard() {
         (item) => item.chain.id === sourceChainId
       );
       if (chainBalance) {
-        const isETH = selectedToken.toUpperCase() === 'ETH';
-        const isUSDC = selectedToken.toUpperCase() === 'USDC';
-
-        if (isUSDC) {
-          setBridgeAmount(chainBalance.balance);
-        } else if (isETH) {
-          const {
-            intent: {
-              fees: { total },
-            },
-          } = await getBridgeFees(
-            selectedToken,
-            (parseFloat(chainBalance.balance) - 1000000).toString(),
-            sourceChainId
-          );
-          const parsedTotal = parseFloat(total);
-          const balance = parseFloat(chainBalance.balance) - parsedTotal;
-          if (balance < 0) {
-            setBridgeError('Insufficient balance');
-            return;
-          }
-          const maxAmount = Math.max(0, balance - parsedTotal);
-          setBridgeAmount(maxAmount.toString());
-        } else {
-          setBridgeAmount(chainBalance.balance);
-        }
+        const {
+          intent: {
+            fees: { total },
+          },
+        } = await getBridgeFees(
+          selectedToken,
+          chainBalance.balance.toString(),
+          sourceChainId
+        );
+        const maxAmount = Math.max(
+          0,
+          parseFloat(chainBalance.balance) - parseFloat(total)
+        );
+        setBridgeAmount(maxAmount.toString());
       }
     }
   };
@@ -110,9 +100,13 @@ export function useDashboard() {
 
     setIsBridging(true);
     setBridgeError(null);
-    console.log(selectedToken, bridgeAmount, destinationChainId);
     try {
-      await bridge(selectedToken, bridgeAmount, destinationChainId);
+      const result = await bridge(
+        selectedToken,
+        bridgeAmount,
+        destinationChainId
+      );
+      console.log(result);
       setBridgeAmount('');
       setSelectedToken(null);
       setSourceChainId(null);
@@ -127,13 +121,137 @@ export function useDashboard() {
     }
   };
 
+  const bridgeActivityWithIntents = useMemo(() => {
+    if (!myIntents || myIntents.length === 0 || !bridgeActivity)
+      return bridgeActivity;
+
+    const existingDepositsMap = new Map(
+      bridgeActivity.BridgeDeposit.map((deposit) => [deposit.id, deposit])
+    );
+
+    const enrichedDeposits = myIntents.map((intent) => {
+      const existingActivity = existingDepositsMap.get(intent.id.toString());
+
+      const totalSourceAmount = intent.sources.reduce(
+        (sum, source) => sum + source.value,
+        BigInt(0)
+      );
+      const sourceChainIds = intent.sources.map((s) => s.chainID);
+      const primarySourceChainId = sourceChainIds[0] || 0;
+
+      const totalDestinationAmount = intent.destinations.reduce(
+        (sum, dest) => sum + dest.value,
+        BigInt(0)
+      );
+
+      const status = intent.fulfilled
+        ? 'Fulfilled'
+        : intent.refunded
+        ? 'Refunded'
+        : intent.deposited
+        ? 'Deposited'
+        : 'Pending';
+      console.log(existingActivity);
+      if (existingActivity) {
+        return {
+          ...existingActivity,
+          intentId: intent.id.toString(),
+          status,
+          isPending: !intent.fulfilled && !intent.refunded,
+          isFulfilled: intent.fulfilled,
+          isDeposited: intent.deposited,
+          isRefunded: intent.refunded,
+          sourceChainIds,
+          primarySourceChainId,
+          sources: intent.sources.map((s) => ({
+            chainId: s.chainID,
+            tokenAddress: s.tokenAddress,
+            amount: s.value.toString(),
+            universe: s.universe,
+          })),
+          destinationChainId: intent.destinationChainID,
+          destinationUniverse: intent.destinationUniverse,
+          destinations: intent.destinations.map((d) => ({
+            tokenAddress: d.tokenAddress,
+            amount: d.value.toString(),
+          })),
+          sourceAmount: totalSourceAmount.toString(),
+          destinationAmount: totalDestinationAmount.toString(),
+          expiry: intent.expiry,
+          expiryDate: new Date(intent.expiry * 1000).toISOString(),
+        };
+      } else {
+        return {
+          id: intent.id.toString(),
+          intentId: intent.id.toString(),
+          requestHash: '',
+          from: address || '',
+          gasRefunded: false,
+          timestamp: 'not found',
+          blockNumber: '0',
+          txHash: '',
+          chainId: primarySourceChainId,
+          status,
+          isPending: !intent.fulfilled && !intent.refunded,
+          isFulfilled: intent.fulfilled,
+          isDeposited: intent.deposited,
+          isRefunded: intent.refunded,
+          sourceChainIds,
+          primarySourceChainId,
+          sources: intent.sources.map((s) => ({
+            chainId: s.chainID,
+            tokenAddress: s.tokenAddress,
+            amount: s.value.toString(),
+            universe: s.universe,
+          })),
+          destinationChainId: intent.destinationChainID,
+          destinationUniverse: intent.destinationUniverse,
+          destinations: intent.destinations.map((d) => ({
+            tokenAddress: d.tokenAddress,
+            amount: d.value.toString(),
+          })),
+          sourceAmount: totalSourceAmount.toString(),
+          destinationAmount: totalDestinationAmount.toString(),
+          expiry: intent.expiry,
+          expiryDate: new Date(intent.expiry * 1000).toISOString(),
+        };
+      }
+    });
+
+    const existingIds = new Set(enrichedDeposits.map((d) => d.id));
+    const nonIntentDeposits = bridgeActivity.BridgeDeposit.filter(
+      (deposit) => !existingIds.has(deposit.id)
+    );
+
+    const updatedBridgeActivity = {
+      ...bridgeActivity,
+      BridgeDeposit: [...enrichedDeposits, ...nonIntentDeposits].sort(
+        (a, b) => {
+          const timeA = new Date(a.timestamp || 0).getTime();
+          const timeB = new Date(b.timestamp || 0).getTime();
+          return timeB - timeA;
+        }
+      ),
+    };
+
+    console.log('Updated Bridge Activity with Intents:', {
+      totalDeposits: updatedBridgeActivity.BridgeDeposit.length,
+      intentsProcessed: myIntents.length,
+      enrichedDeposits: enrichedDeposits.length,
+      sampleIntent: myIntents[0],
+      sampleEnrichedDeposit: enrichedDeposits[0],
+    });
+
+    return updatedBridgeActivity;
+  }, [bridgeActivity, myIntents, address]);
+
   return {
     address,
     isConnected,
     chainId,
     userActivity,
     splits,
-    bridgeActivity,
+    bridgeActivity: bridgeActivityWithIntents,
     isLoading,
     unifiedBalance,
     initSDK,
@@ -142,7 +260,6 @@ export function useDashboard() {
     selectedToken,
     setSelectedToken,
     sourceChainId,
-    setSourceChainId,
     destinationChainId,
     setDestinationChainId,
     bridgeAmount,
@@ -152,5 +269,7 @@ export function useDashboard() {
     handleSourceChainChange,
     handleMaxAmount,
     handleBridge,
+    isInitializationLoading,
+    myIntents,
   };
 }

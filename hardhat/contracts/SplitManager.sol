@@ -285,7 +285,7 @@ contract SplitManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         string memory title,
         uint256 amount,
         address[] memory forWho
-    ) external splitExists(splitId) {
+    ) external splitExists(splitId) returns (uint256 spendingId) {
         require(_isMember(splitId, msg.sender), "Not a member of this split");
         require(amount > 0, "Amount must be greater than 0");
         
@@ -298,6 +298,7 @@ contract SplitManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
             require(_isMember(splitId, members[i]), "Member not a member");
         }
         
+        spendingId = split.spendingCounter;
         Spending memory newSpending = Spending({
             id: split.spendingCounter,
             title: title,
@@ -334,6 +335,8 @@ contract SplitManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         }
         
         emit SpendingAdded(splitId, newSpending.id, title, msg.sender, amount, members, token);
+
+        return spendingId;
     }
 
     /**

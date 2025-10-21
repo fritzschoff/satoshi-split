@@ -49,8 +49,8 @@ export default function CreateSplitPage() {
         {!isOnSepolia && (
           <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
             <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-3">
-              ⚠️ You are not on Sepolia network. The contract is only deployed
-              on Sepolia.
+              You are not on Sepolia network. The contract is only deployed on
+              Sepolia.
             </p>
             <Button
               onClick={() => switchChain({ chainId: sepolia.id })}

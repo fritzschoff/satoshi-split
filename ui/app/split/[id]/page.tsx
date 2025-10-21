@@ -44,9 +44,24 @@ export default function SplitDetailPage({
     isConfirmingPayment,
     paymentError,
     isPaymentSuccess,
+    isRemovingMember,
+    isConfirmingRemoveMember,
+    removeMemberError,
+    isRemoveMemberSuccess,
+    isRemovingSpending,
+    isConfirmingRemoveSpending,
+    removeSpendingError,
+    isRemoveSpendingSuccess,
+    isAddingMemberToSpending,
+    isConfirmingAddMemberToSpending,
+    addMemberToSpendingError,
+    isAddMemberToSpendingSuccess,
     handleAddExpense,
     handlePayDebt,
     handleMemberToggle,
+    handleRemoveMember,
+    handleRemoveSpending,
+    handleAddMemberToSpending,
   } = useSplitDetail(id);
 
   if (!isConnected) {
@@ -109,7 +124,14 @@ export default function SplitDetailPage({
             tokenDecimals={tokenDecimals}
           />
 
-          <MembersList split={split} currentAddress={address} />
+          <MembersList
+            split={split}
+            currentAddress={address}
+            isCreator={!!isCreator}
+            isRemovingMember={isRemovingMember}
+            isConfirmingRemoveMember={isConfirmingRemoveMember}
+            onRemoveMember={handleRemoveMember}
+          />
 
           <UserDebts
             debts={userDebts || []}
@@ -150,6 +172,15 @@ export default function SplitDetailPage({
         <ExpensesHistory
           spendings={split.spendings}
           defaultToken={defaultToken}
+          split={split}
+          currentAddress={address}
+          isCreator={!!isCreator}
+          isRemovingSpending={isRemovingSpending}
+          isConfirmingRemoveSpending={isConfirmingRemoveSpending}
+          isAddingMemberToSpending={isAddingMemberToSpending}
+          isConfirmingAddMemberToSpending={isConfirmingAddMemberToSpending}
+          onRemoveSpending={handleRemoveSpending}
+          onAddMemberToSpending={handleAddMemberToSpending}
         />
       </div>
     </div>

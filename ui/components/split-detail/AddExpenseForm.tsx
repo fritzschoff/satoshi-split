@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Split } from '@/types/web3';
+import { useChainId } from 'wagmi';
 
 interface AddExpenseFormProps {
   split: Split;
@@ -40,6 +41,9 @@ export function AddExpenseForm({
   onMemberToggle,
   onSubmit,
 }: AddExpenseFormProps) {
+  const chainId = useChainId();
+  const isOnSepolia = chainId === 11155111;
+
   return (
     <Card>
       <CardHeader>
@@ -49,11 +53,18 @@ export function AddExpenseForm({
         {!isMember && (
           <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
             <p className="text-sm text-yellow-800 dark:text-yellow-200">
-              ⚠️ You are not a member of this split. Only members can add
-              expenses. Your connected wallet:{' '}
+              You are not a member of this split. Only members can add expenses.
+              Your connected wallet:{' '}
               <code className="font-mono">
                 {currentAddress?.slice(0, 6)}...{currentAddress?.slice(-4)}
               </code>
+            </p>
+          </div>
+        )}
+        {!isOnSepolia && (
+          <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+            <p className="text-sm text-yellow-800 dark:text-yellow-200">
+              You must be connected to the Sepolia network to submit expenses.
             </p>
           </div>
         )}
@@ -65,7 +76,7 @@ export function AddExpenseForm({
               value={expenseTitle}
               onChange={(e) => onExpenseTitleChange(e.target.value)}
               required
-              disabled={!isMember}
+              disabled={!isMember || !isOnSepolia}
             />
             <Input
               label={`Amount (${tokenSymbol})`}
@@ -75,7 +86,7 @@ export function AddExpenseForm({
               value={expenseAmount}
               onChange={(e) => onExpenseAmountChange(e.target.value)}
               required
-              disabled={!isMember}
+              disabled={!isMember || !isOnSepolia}
             />
           </div>
 
@@ -84,29 +95,32 @@ export function AddExpenseForm({
               Split among (check all who participated)
             </label>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {split.members.map((member) => (
-                <label
-                  key={member}
-                  className={`flex items-center p-2 border border-gray-300 dark:border-gray-600 rounded-lg ${
-                    isMember
-                      ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700'
-                      : 'opacity-50 cursor-not-allowed'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedMembers.includes(member)}
-                    onChange={(e) => onMemberToggle(member, e.target.checked)}
-                    className="mr-2"
-                    disabled={!isMember}
-                  />
-                  <span className="text-sm font-mono">
-                    {member.slice(0, 6)}...{member.slice(-4)}
-                    {member.toLowerCase() === currentAddress?.toLowerCase() &&
-                      ' (You)'}
-                  </span>
-                </label>
-              ))}
+              {split.members.map((member) => {
+                const isChecked = selectedMembers.includes(member);
+                return (
+                  <label
+                    key={member}
+                    className={`flex items-center p-2 border border-gray-300 dark:border-gray-600 rounded-lg ${
+                      isMember && isOnSepolia
+                        ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700'
+                        : 'opacity-50 cursor-not-allowed'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(e) => onMemberToggle(member, e.target.checked)}
+                      className="mr-2"
+                      disabled={!isMember || !isOnSepolia}
+                    />
+                    <span className="text-sm font-mono">
+                      {member.slice(0, 6)}...{member.slice(-4)}
+                      {member.toLowerCase() === currentAddress?.toLowerCase() &&
+                        ' (You)'}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
           </div>
 
@@ -130,10 +144,17 @@ export function AddExpenseForm({
             type="submit"
             className="w-full"
             isLoading={isAddingExpense || isConfirmingExpense}
-            disabled={!isMember || isAddingExpense || isConfirmingExpense}
+            disabled={
+              !isMember ||
+              !isOnSepolia ||
+              isAddingExpense ||
+              isConfirmingExpense
+            }
           >
             {!isMember
               ? 'Not a member of this split'
+              : !isOnSepolia
+              ? 'Switch to Sepolia to add expenses'
               : isAddingExpense
               ? 'Waiting for approval...'
               : isConfirmingExpense

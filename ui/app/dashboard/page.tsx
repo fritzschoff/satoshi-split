@@ -8,6 +8,7 @@ import { TransactionMetrics } from '@/components/dashboard/TransactionMetrics';
 import { BridgeActivityCard } from '@/components/dashboard/BridgeActivityCard';
 import { SplitsList } from '@/components/dashboard/SplitsList';
 import { useDashboard } from '@/hooks/useDashboard';
+import { useEffect } from 'react';
 
 export default function DashboardPage() {
   const {
@@ -24,7 +25,6 @@ export default function DashboardPage() {
     selectedToken,
     setSelectedToken,
     sourceChainId,
-    setSourceChainId,
     destinationChainId,
     setDestinationChainId,
     bridgeAmount,
@@ -34,6 +34,8 @@ export default function DashboardPage() {
     handleSourceChainChange,
     handleMaxAmount,
     handleBridge,
+    isInitializationLoading,
+    myIntents,
   } = useDashboard();
 
   if (!isConnected) {
@@ -93,12 +95,12 @@ export default function DashboardPage() {
           bridgeError={bridgeError}
           onInitSDK={initSDK}
           onSetSelectedToken={setSelectedToken}
-          onSetSourceChainId={setSourceChainId}
           onSetDestinationChainId={setDestinationChainId}
           onSetBridgeAmount={setBridgeAmount}
           onMaxAmount={handleMaxAmount}
           onBridge={handleBridge}
           onSourceChainChange={handleSourceChainChange}
+          isInitializationLoading={isInitializationLoading}
         />
 
         <TransactionMetrics

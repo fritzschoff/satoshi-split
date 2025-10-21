@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
   graphqlClient,
   getSplitQuery,
@@ -7,13 +7,9 @@ import {
   getUserActivityQuery,
   getUserBridgeActivityQuery,
 } from '@/lib/graphql-client';
-import {
-  Split,
-  UserActivity,
-  BridgeActivity,
-  Spending,
-  Debt,
-} from '@/types/web3';
+import { Split, UserActivity, BridgeActivity } from '@/types/web3';
+import { useLocalStorage } from '@/components/providers/LocalStorageProvider';
+import { useEffect } from 'react';
 
 export const splitKeys = {
   all: ['splits'] as const,
@@ -33,9 +29,16 @@ export const activityKeys = {
 };
 
 export function useGetSplit(id: string) {
-  const queryClient = useQueryClient();
+  const {
+    getPendingSplit,
+    removePendingSplit,
+    getPendingSpendings,
+    removePendingSpending,
+    getPendingDebts,
+    isReady,
+  } = useLocalStorage();
 
-  return useQuery({
+  const query = useQuery({
     queryKey: splitKeys.detail(id),
     queryFn: async () => {
       const data: Record<'Split', Split[]> = await graphqlClient.request(
@@ -44,28 +47,75 @@ export function useGetSplit(id: string) {
       );
       return data.Split?.[0] || null;
     },
-    enabled: !!id,
-    initialData: () => {
-      const cachedSplit = queryClient.getQueryData<Split>(splitKeys.detail(id));
-      if (cachedSplit) {
-        return cachedSplit;
-      }
-
-      const allSplits = queryClient.getQueryData<Split[]>(splitKeys.list());
-      if (allSplits) {
-        return allSplits.find((split) => split.id === id) || undefined;
-      }
-
-      return undefined;
-    },
-    initialDataUpdatedAt: () => {
-      return queryClient.getQueryState(splitKeys.detail(id))?.dataUpdatedAt;
-    },
+    enabled: !!id && isReady,
   });
+
+  useEffect(() => {
+    if (query.data && id && isReady) {
+      const pendingSplit = getPendingSplit(id);
+      if (pendingSplit) {
+        removePendingSplit(id);
+      }
+
+      const pendingSpendings = getPendingSpendings(id);
+      if (pendingSpendings.length > 0) {
+        const indexedSpendingSignatures = new Map(
+          query.data.spendings.map((s) => {
+            const signature = `${s.title}-${s.payer.toLowerCase()}-${s.amount}`;
+            return [signature, s];
+          })
+        );
+
+        pendingSpendings.forEach((pendingSpending) => {
+          const pendingSignature = `${
+            pendingSpending.title
+          }-${pendingSpending.payer.toLowerCase()}-${pendingSpending.amount}`;
+
+          if (indexedSpendingSignatures.has(pendingSignature)) {
+            removePendingSpending(pendingSpending.id);
+          }
+        });
+      }
+    }
+  }, [
+    query.data,
+    id,
+    getPendingSplit,
+    removePendingSplit,
+    getPendingSpendings,
+    removePendingSpending,
+    isReady,
+  ]);
+
+  const pendingSplit = !query.data && id ? getPendingSplit(id) : null;
+  const pendingSpendings = id ? getPendingSpendings(id) : [];
+  const pendingDebts = id ? getPendingDebts(id) : [];
+
+  const mergedData = query.data
+    ? {
+        ...query.data,
+        spendings: [...query.data.spendings, ...pendingSpendings],
+        debts: [...query.data.debts, ...pendingDebts],
+      }
+    : pendingSplit
+    ? {
+        ...pendingSplit,
+        spendings: [...pendingSplit.spendings, ...pendingSpendings],
+        debts: [...pendingSplit.debts, ...pendingDebts],
+      }
+    : null;
+
+  return {
+    ...query,
+    data: mergedData,
+  };
 }
 
 export function useGetUserSplits(address?: string) {
-  return useQuery({
+  const { getAllPendingSplits, removePendingSplit, isReady } =
+    useLocalStorage();
+
+  const query = useQuery({
     queryKey: splitKeys.userSplits(address || ''),
     queryFn: async () => {
       const data: Record<'Split', Split[]> = await graphqlClient.request(
@@ -74,12 +124,52 @@ export function useGetUserSplits(address?: string) {
       );
       return data.Split || [];
     },
-    enabled: !!address,
+    enabled: !!address && isReady,
   });
+
+  useEffect(() => {
+    if (query.data && address && isReady) {
+      const pendingSplits = getAllPendingSplits();
+      const indexedIds = new Set(query.data.map((split) => split.id));
+
+      pendingSplits.forEach((pendingSplit) => {
+        if (
+          indexedIds.has(pendingSplit.id) ||
+          indexedIds.has(pendingSplit.tempId)
+        ) {
+          console.log(
+            'Split found in indexer, removing from localStorage:',
+            pendingSplit.id
+          );
+          removePendingSplit(pendingSplit.tempId);
+        }
+      });
+    }
+  }, [query.data, address, getAllPendingSplits, removePendingSplit, isReady]);
+
+  const pendingSplits = address
+    ? getAllPendingSplits().filter((split) =>
+        split.members.some(
+          (member) => member.toLowerCase() === address.toLowerCase()
+        )
+      )
+    : [];
+
+  const mergedData = query.data
+    ? [...query.data, ...pendingSplits]
+    : pendingSplits;
+
+  return {
+    ...query,
+    data: mergedData,
+  };
 }
 
 export function useGetAllSplits(limit = 100, offset = 0) {
-  return useQuery({
+  const { getAllPendingSplits, removePendingSplit, isReady } =
+    useLocalStorage();
+
+  const query = useQuery({
     queryKey: splitKeys.list({ limit, offset }),
     queryFn: async () => {
       const data: Record<'Split', Split[]> = await graphqlClient.request(
@@ -88,7 +178,38 @@ export function useGetAllSplits(limit = 100, offset = 0) {
       );
       return data.Split || [];
     },
+    enabled: isReady,
   });
+
+  useEffect(() => {
+    if (query.data && isReady) {
+      const pendingSplits = getAllPendingSplits();
+      const indexedIds = new Set(query.data.map((split) => split.id));
+
+      pendingSplits.forEach((pendingSplit) => {
+        if (
+          indexedIds.has(pendingSplit.id) ||
+          indexedIds.has(pendingSplit.tempId)
+        ) {
+          console.log(
+            'Split found in indexer, removing from localStorage:',
+            pendingSplit.id
+          );
+          removePendingSplit(pendingSplit.tempId);
+        }
+      });
+    }
+  }, [query.data, getAllPendingSplits, removePendingSplit, isReady]);
+
+  const pendingSplits = getAllPendingSplits();
+  const mergedData = query.data
+    ? [...query.data, ...pendingSplits]
+    : pendingSplits;
+
+  return {
+    ...query,
+    data: mergedData,
+  };
 }
 
 export function useGetUserActivity(address?: string) {
@@ -120,215 +241,4 @@ export function useGetBridgeActivity(address?: string) {
     },
     enabled: !!address,
   });
-}
-
-export function useOptimisticAddExpense(splitId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (expense: {
-      title: string;
-      amount: string;
-      payer: string;
-      token: string;
-      forWho: string[];
-    }) => {
-      return expense;
-    },
-    onMutate: async (newExpense) => {
-      await queryClient.cancelQueries({ queryKey: splitKeys.detail(splitId) });
-
-      const previousSplit = queryClient.getQueryData<Split>(
-        splitKeys.detail(splitId)
-      );
-
-      if (previousSplit) {
-        const optimisticSpending: Spending = {
-          id: `temp-${Date.now()}`,
-          spendingId: `temp-${Date.now()}`,
-          title: newExpense.title,
-          payer: newExpense.payer,
-          amount: newExpense.amount,
-          forWho: newExpense.forWho,
-          timestamp: String(Math.floor(Date.now() / 1000)),
-          token: newExpense.token,
-          txHash: '',
-          chainId: 11155111,
-        };
-
-        queryClient.setQueryData<Split>(splitKeys.detail(splitId), {
-          ...previousSplit,
-          spendings: [...previousSplit.spendings, optimisticSpending],
-        });
-      }
-
-      return { previousSplit };
-    },
-    onError: (err, newExpense, context) => {
-      if (context?.previousSplit) {
-        queryClient.setQueryData(
-          splitKeys.detail(splitId),
-          context.previousSplit
-        );
-      }
-    },
-    onSettled: () => {
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: splitKeys.detail(splitId) });
-      }, 3000);
-    },
-  });
-}
-
-export function useOptimisticPayDebt(splitId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (payment: {
-      creditor: string;
-      debtor: string;
-      amount: string;
-    }) => {
-      return payment;
-    },
-    onMutate: async (payment) => {
-      await queryClient.cancelQueries({ queryKey: splitKeys.detail(splitId) });
-
-      const previousSplit = queryClient.getQueryData<Split>(
-        splitKeys.detail(splitId)
-      );
-
-      if (previousSplit) {
-        const updatedDebts = previousSplit.debts.map((debt) => {
-          if (
-            debt.creditor.toLowerCase() === payment.creditor.toLowerCase() &&
-            debt.debtor.toLowerCase() === payment.debtor.toLowerCase() &&
-            debt.amount === payment.amount
-          ) {
-            return {
-              ...debt,
-              isPaid: true,
-              paidAt: String(Math.floor(Date.now() / 1000)),
-            };
-          }
-          return debt;
-        });
-
-        queryClient.setQueryData<Split>(splitKeys.detail(splitId), {
-          ...previousSplit,
-          debts: updatedDebts,
-        });
-      }
-
-      return { previousSplit };
-    },
-    onError: (err, payment, context) => {
-      if (context?.previousSplit) {
-        queryClient.setQueryData(
-          splitKeys.detail(splitId),
-          context.previousSplit
-        );
-      }
-    },
-    onSettled: () => {
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: splitKeys.detail(splitId) });
-      }, 3000);
-    },
-  });
-}
-
-export function useOptimisticCreateSplit() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (split: {
-      id: string;
-      creator: string;
-      members: string[];
-      defaultToken: string;
-    }) => {
-      return split;
-    },
-    onMutate: async (newSplit) => {
-      await queryClient.cancelQueries({ queryKey: splitKeys.lists() });
-
-      const previousSplits = queryClient.getQueryData<Split[]>(
-        splitKeys.list()
-      );
-
-      const optimisticSplit: Split = {
-        id: newSplit.id,
-        creator: newSplit.creator,
-        members: newSplit.members,
-        defaultToken: newSplit.defaultToken,
-        createdAt: String(Math.floor(Date.now() / 1000)),
-        totalDebt: '0',
-        spendings: [],
-        debts: [],
-      };
-
-      if (previousSplits) {
-        queryClient.setQueryData<Split[]>(splitKeys.list(), [
-          optimisticSplit,
-          ...previousSplits,
-        ]);
-      }
-
-      queryClient.setQueryData<Split>(
-        splitKeys.detail(newSplit.id),
-        optimisticSplit
-      );
-
-      return { previousSplits, tempId: newSplit.id };
-    },
-    onError: (err, newSplit, context) => {
-      if (context?.previousSplits) {
-        queryClient.setQueryData(splitKeys.list(), context.previousSplits);
-      }
-      queryClient.removeQueries({ queryKey: splitKeys.detail(newSplit.id) });
-    },
-    onSuccess: (split, variables, context) => {
-      if (context?.tempId && context.tempId !== split.id) {
-        queryClient.removeQueries({
-          queryKey: splitKeys.detail(context.tempId),
-        });
-      }
-    },
-    onSettled: () => {
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: splitKeys.lists() });
-      }, 3000);
-    },
-  });
-}
-
-export function useUpdateSplitIdAfterCreation() {
-  const queryClient = useQueryClient();
-
-  return (tempId: string, realId: string) => {
-    const tempSplit = queryClient.getQueryData<Split>(splitKeys.detail(tempId));
-
-    if (tempSplit) {
-      queryClient.setQueryData<Split>(splitKeys.detail(realId), {
-        ...tempSplit,
-        id: realId,
-      });
-
-      const allSplits = queryClient.getQueryData<Split[]>(splitKeys.list());
-      if (allSplits) {
-        const updatedSplits = allSplits.map((split) =>
-          split.id === tempId ? { ...split, id: realId } : split
-        );
-        queryClient.setQueryData<Split[]>(splitKeys.list(), updatedSplits);
-      }
-
-      queryClient.removeQueries({ queryKey: splitKeys.detail(tempId) });
-    }
-
-    setTimeout(() => {
-      queryClient.invalidateQueries({ queryKey: splitKeys.detail(realId) });
-      queryClient.invalidateQueries({ queryKey: splitKeys.lists() });
-    }, 3000);
-  };
 }

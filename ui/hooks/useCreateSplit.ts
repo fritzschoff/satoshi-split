@@ -10,11 +10,8 @@ import { SPLIT_MANAGER_ABI } from '@/constants/contract-abi';
 import { useRouter } from 'next/navigation';
 import { sepolia } from 'wagmi/chains';
 import { zeroAddress, decodeEventLog } from 'viem';
-import {
-  useOptimisticCreateSplit,
-  useUpdateSplitIdAfterCreation,
-} from './useGraphQLQueries';
 import { TOKENS } from '@/constants/tokens';
+import { useLocalStorage } from '@/components/providers/LocalStorageProvider';
 
 const SPLIT_CONTRACT_ADDRESS = (process.env
   .NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS || zeroAddress) as `0x${string}`;
@@ -24,15 +21,13 @@ export function useCreateSplit() {
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
   const router = useRouter();
+  const { addPendingSplit, updateSplitId } = useLocalStorage();
 
   const [members, setMembers] = useState<string>('');
   const [selectedToken, setSelectedToken] = useState(TOKENS[0].address);
   const [validationError, setValidationError] = useState<string>('');
   const [createdSplitId, setCreatedSplitId] = useState<string | null>(null);
   const tempSplitIdRef = useRef<string | null>(null);
-
-  const createSplitMutation = useOptimisticCreateSplit();
-  const updateSplitId = useUpdateSplitIdAfterCreation();
 
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const {
@@ -136,14 +131,19 @@ export function useCreateSplit() {
       const tempSplitId = `temp-${Date.now()}`;
       tempSplitIdRef.current = tempSplitId;
 
-      createSplitMutation.mutate({
+      addPendingSplit({
         id: tempSplitId,
+        tempId: tempSplitId,
         creator: address,
         members: allMembers,
         defaultToken: selectedToken,
+        createdAt: new Date().getTime().toString(),
+        totalDebt: '0',
+        spendings: [],
+        debts: [],
       });
 
-      await writeContract({
+      writeContract({
         address: SPLIT_CONTRACT_ADDRESS,
         abi: SPLIT_MANAGER_ABI,
         functionName: 'createSplit',

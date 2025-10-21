@@ -5,8 +5,10 @@ export interface Split {
   defaultToken: string;
   createdAt: string;
   totalDebt: string;
+  spendingCounter?: string;
   spendings: Spending[];
   debts: Debt[];
+  isPending?: boolean;
 }
 
 export interface Spending {
@@ -16,10 +18,11 @@ export interface Spending {
   payer: string;
   amount: string;
   forWho: string[];
-  timestamp: string;
+  timestamp: string | 'not found';
   token: string;
   txHash: string;
   chainId: number;
+  isPending?: boolean;
 }
 
 export interface Debt {
@@ -31,6 +34,7 @@ export interface Debt {
   isPaid: boolean;
   paidAt: string | null;
   txHash: string | null;
+  isPending?: boolean;
 }
 export interface UserActivity {
   id: string;
@@ -42,15 +46,44 @@ export interface UserActivity {
   transactionCount: number;
   splits: string[];
 }
+export interface BridgeDepositSource {
+  chainId: number;
+  tokenAddress: string;
+  amount: string;
+  universe: string;
+}
+
+export interface BridgeDepositDestination {
+  tokenAddress: string;
+  amount: string;
+}
+
 export interface BridgeDeposit {
   id: string;
   requestHash: string;
   from: string;
   gasRefunded: boolean;
-  timestamp: string;
+  timestamp: string | 'not found';
   blockNumber: string;
   txHash: string;
   chainId: number;
+
+  intentId?: string;
+  status?: 'Pending' | 'Deposited' | 'Fulfilled' | 'Refunded';
+  isPending?: boolean;
+  isFulfilled?: boolean;
+  isDeposited?: boolean;
+  isRefunded?: boolean;
+  sourceChainIds?: number[];
+  primarySourceChainId?: number;
+  sources?: BridgeDepositSource[];
+  destinationChainId?: number;
+  destinationUniverse?: string;
+  destinations?: BridgeDepositDestination[];
+  sourceAmount?: string;
+  destinationAmount?: string;
+  expiry?: number;
+  expiryDate?: string;
 }
 
 export interface BridgeFill {
@@ -58,7 +91,7 @@ export interface BridgeFill {
   requestHash: string;
   from: string;
   solver: string;
-  timestamp: string;
+  timestamp: string | 'not found';
   blockNumber: string;
   txHash: string;
   chainId: number;
@@ -69,7 +102,7 @@ export interface BridgeWithdraw {
   to: string;
   token: string;
   amount: string;
-  timestamp: string;
+  timestamp: string | 'not found';
   blockNumber: string;
   txHash: string;
   chainId: number;

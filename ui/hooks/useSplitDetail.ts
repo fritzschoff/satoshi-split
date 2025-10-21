@@ -10,11 +10,8 @@ import { zeroAddress, parseUnits, encodeFunctionData } from 'viem';
 import { ERC20_ABI, SPLIT_MANAGER_ABI } from '@/constants/contract-abi';
 import { simulateContract } from 'viem/actions';
 import { getTokenSymbol, getTokenDecimals } from '@/utils/token';
-import {
-  useGetSplit,
-  useOptimisticAddExpense,
-  useOptimisticPayDebt,
-} from './useGraphQLQueries';
+import { useGetSplit } from './useGraphQLQueries';
+import { useLocalStorage } from '@/components/providers/LocalStorageProvider';
 
 const SPLIT_CONTRACT_ADDRESS = (process.env
   .NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS || zeroAddress) as `0x${string}`;
@@ -23,18 +20,17 @@ export function useSplitDetail(splitId: string) {
   const { address, isConnected } = useAccount();
   const { data: split, isLoading, refetch } = useGetSplit(splitId);
   const publicClient = usePublicClient();
+  const { addPendingSpending } = useLocalStorage();
 
   const [expenseTitle, setExpenseTitle] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [hasInitializedMembers, setHasInitializedMembers] = useState(false);
   const [pendingPayment, setPendingPayment] = useState<{
     creditor: string;
     amount: string;
     isETH: boolean;
   } | null>(null);
-
-  const addExpenseMutation = useOptimisticAddExpense(splitId);
-  const payDebtMutation = useOptimisticPayDebt(splitId);
 
   const {
     writeContract: addExpense,
@@ -57,6 +53,45 @@ export function useSplitDetail(splitId: string) {
     useWaitForTransactionReceipt({
       hash: paymentHash,
     });
+
+  const {
+    writeContract: removeMemberContract,
+    data: removeMemberHash,
+    isPending: isRemovingMember,
+    error: removeMemberError,
+  } = useWriteContract();
+  const {
+    isLoading: isConfirmingRemoveMember,
+    isSuccess: isRemoveMemberSuccess,
+  } = useWaitForTransactionReceipt({
+    hash: removeMemberHash,
+  });
+
+  const {
+    writeContract: removeSpendingContract,
+    data: removeSpendingHash,
+    isPending: isRemovingSpending,
+    error: removeSpendingError,
+  } = useWriteContract();
+  const {
+    isLoading: isConfirmingRemoveSpending,
+    isSuccess: isRemoveSpendingSuccess,
+  } = useWaitForTransactionReceipt({
+    hash: removeSpendingHash,
+  });
+
+  const {
+    writeContract: addMemberToSpendingContract,
+    data: addMemberToSpendingHash,
+    isPending: isAddingMemberToSpending,
+    error: addMemberToSpendingError,
+  } = useWriteContract();
+  const {
+    isLoading: isConfirmingAddMemberToSpending,
+    isSuccess: isAddMemberToSpendingSuccess,
+  } = useWaitForTransactionReceipt({
+    hash: addMemberToSpendingHash,
+  });
 
   const defaultToken = split?.defaultToken || zeroAddress;
 
@@ -82,18 +117,32 @@ export function useSplitDetail(splitId: string) {
     });
 
   useEffect(() => {
-    if (split) {
+    if (split && !hasInitializedMembers) {
       setSelectedMembers(split.members);
+      setHasInitializedMembers(true);
     }
-  }, [split]);
+  }, [split, hasInitializedMembers]);
 
   useEffect(() => {
-    if (isExpenseSuccess || isPaymentSuccess) {
+    if (
+      isExpenseSuccess ||
+      isPaymentSuccess ||
+      isRemoveMemberSuccess ||
+      isRemoveSpendingSuccess ||
+      isAddMemberToSpendingSuccess
+    ) {
       setTimeout(() => {
         refetch();
       }, 3000);
     }
-  }, [isExpenseSuccess, isPaymentSuccess, refetch]);
+  }, [
+    isExpenseSuccess,
+    isPaymentSuccess,
+    isRemoveMemberSuccess,
+    isRemoveSpendingSuccess,
+    isAddMemberToSpendingSuccess,
+    refetch,
+  ]);
 
   useEffect(() => {
     if (isExpenseSuccess) {
@@ -101,6 +150,7 @@ export function useSplitDetail(splitId: string) {
       setExpenseAmount('');
       if (split) {
         setSelectedMembers(split.members);
+        setHasInitializedMembers(true);
       }
     }
   }, [isExpenseSuccess, split]);
@@ -109,12 +159,6 @@ export function useSplitDetail(splitId: string) {
     if (isApprovalSuccess && pendingPayment) {
       const { creditor, amount, isETH } = pendingPayment;
       const amountInUnits = BigInt(amount);
-
-      payDebtMutation.mutate({
-        creditor,
-        debtor: address!,
-        amount,
-      });
 
       payDebtContract({
         address: SPLIT_CONTRACT_ADDRESS,
@@ -126,14 +170,7 @@ export function useSplitDetail(splitId: string) {
 
       setPendingPayment(null);
     }
-  }, [
-    isApprovalSuccess,
-    pendingPayment,
-    payDebtMutation,
-    payDebtContract,
-    splitId,
-    address,
-  ]);
+  }, [isApprovalSuccess, pendingPayment, payDebtContract, splitId, address]);
 
   const [tokenSymbol, tokenDecimals] = useMemo(
     () => [getTokenSymbol(defaultToken), getTokenDecimals(defaultToken)],
@@ -179,16 +216,8 @@ export function useSplitDetail(splitId: string) {
     try {
       const amountInUnits = parseUnits(expenseAmount, tokenDecimals);
 
-      addExpenseMutation.mutate({
-        title: expenseTitle,
-        amount: amountInUnits.toString(),
-        payer: address,
-        token: defaultToken,
-        forWho: selectedMembers,
-      });
-
       try {
-        const [gas] = await Promise.all([
+        const [gas, simulationResult] = await Promise.all([
           publicClient!.estimateGas({
             account: address,
             to: SPLIT_CONTRACT_ADDRESS,
@@ -229,6 +258,27 @@ export function useSplitDetail(splitId: string) {
             selectedMembers as `0x${string}`[],
           ],
           gas: gas,
+        });
+        const pendingSpendingId = `pending-${splitId}-${simulationResult.result.toString()}`;
+        const currentTimestamp = Math.floor(Date.now() / 1000);
+
+        const normalizedPayer = address.toLowerCase();
+        const normalizedToken = (
+          split?.defaultToken || zeroAddress
+        ).toLowerCase();
+
+        addPendingSpending({
+          id: pendingSpendingId,
+          spendingId: '0',
+          title: expenseTitle,
+          payer: normalizedPayer,
+          amount: amountInUnits.toString(),
+          forWho: selectedMembers.map((m) => m.toLowerCase()),
+          timestamp: currentTimestamp.toString(),
+          token: normalizedToken,
+          txHash: '',
+          chainId: 11155111,
+          splitId: splitId,
         });
       } catch (simulationError) {
         console.error('Simulation failed:', simulationError);
@@ -274,12 +324,6 @@ export function useSplitDetail(splitId: string) {
         return;
       }
 
-      payDebtMutation.mutate({
-        creditor,
-        debtor: address,
-        amount,
-      });
-
       payDebtContract({
         address: SPLIT_CONTRACT_ADDRESS,
         abi: SPLIT_MANAGER_ABI,
@@ -295,9 +339,80 @@ export function useSplitDetail(splitId: string) {
 
   const handleMemberToggle = (member: string, checked: boolean) => {
     if (checked) {
-      setSelectedMembers([...selectedMembers, member]);
+      if (!selectedMembers.includes(member)) {
+        setSelectedMembers([...selectedMembers, member]);
+      }
     } else {
       setSelectedMembers(selectedMembers.filter((m) => m !== member));
+    }
+  };
+
+  const handleRemoveMember = async (member: string) => {
+    if (!split || !address) return;
+
+    if (
+      !window.confirm(
+        `Are you sure you want to remove ${member.slice(0, 6)}...${member.slice(
+          -4
+        )} from this split?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      removeMemberContract({
+        address: SPLIT_CONTRACT_ADDRESS,
+        abi: SPLIT_MANAGER_ABI,
+        functionName: 'removeMember',
+        args: [BigInt(splitId), member as `0x${string}`],
+      });
+    } catch (err) {
+      console.error('Error removing member:', err);
+      alert('Error removing member. Please try again.');
+    }
+  };
+
+  const handleRemoveSpending = async (spendingId: string) => {
+    if (!split || !address) return;
+
+    if (
+      !window.confirm(
+        'Are you sure you want to remove this expense? This will reverse all debts created by it.'
+      )
+    ) {
+      return;
+    }
+
+    try {
+      removeSpendingContract({
+        address: SPLIT_CONTRACT_ADDRESS,
+        abi: SPLIT_MANAGER_ABI,
+        functionName: 'removeSpending',
+        args: [BigInt(splitId), BigInt(spendingId)],
+      });
+    } catch (err) {
+      console.error('Error removing spending:', err);
+      alert('Error removing spending. Please try again.');
+    }
+  };
+
+  const handleAddMemberToSpending = async (
+    spendingId: string,
+    member: string
+  ) => {
+    if (!split || !address) return;
+
+    try {
+      addMemberToSpendingContract({
+        address: SPLIT_CONTRACT_ADDRESS,
+        abi: SPLIT_MANAGER_ABI,
+        functionName: 'addMemberToSpending',
+        args: [BigInt(splitId), BigInt(spendingId), member as `0x${string}`],
+      });
+    } catch (err) {
+      console.error('Error adding member to spending:', err);
+      alert('Error adding member to spending. Please try again.');
     }
   };
 
@@ -329,8 +444,23 @@ export function useSplitDetail(splitId: string) {
     isConfirmingPayment,
     paymentError,
     isPaymentSuccess,
+    isRemovingMember,
+    isConfirmingRemoveMember,
+    removeMemberError,
+    isRemoveMemberSuccess,
+    isRemovingSpending,
+    isConfirmingRemoveSpending,
+    removeSpendingError,
+    isRemoveSpendingSuccess,
+    isAddingMemberToSpending,
+    isConfirmingAddMemberToSpending,
+    addMemberToSpendingError,
+    isAddMemberToSpendingSuccess,
     handleAddExpense,
     handlePayDebt,
     handleMemberToggle,
+    handleRemoveMember,
+    handleRemoveSpending,
+    handleAddMemberToSpending,
   };
 }

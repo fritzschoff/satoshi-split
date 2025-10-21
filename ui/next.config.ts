@@ -12,6 +12,12 @@ const nextConfig: NextConfig = {
         process: require.resolve('process/browser'),
       };
 
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        '@react-native-async-storage/async-storage': false,
+        'react-native': false,
+      };
+
       config.plugins.push(
         new webpack.ProvidePlugin({
           Buffer: ['buffer', 'Buffer'],

@@ -65,7 +65,7 @@ export function BridgeActivityCard({
         </div>
         <div className="flex gap-2">
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage === 0}
@@ -73,7 +73,7 @@ export function BridgeActivityCard({
             Previous
           </Button>
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage >= totalPages - 1}
@@ -105,50 +105,139 @@ export function BridgeActivityCard({
                 {getPaginatedItems(
                   bridgeActivity.BridgeDeposit,
                   depositPage
-                ).map((deposit) => (
-                  <div
-                    key={deposit.id}
-                    className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-purple-50 dark:bg-purple-900/10"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          Deposit to {getChainName(deposit.chainId)}
-                        </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                          From: {deposit.from.slice(0, 6)}...
-                          {deposit.from.slice(-4)}
-                        </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                          Request: {deposit.requestHash.slice(0, 10)}...
-                          {deposit.requestHash.slice(-8)} •{' '}
-                          {deposit.gasRefunded ? (
-                            <span className="text-green-600 dark:text-green-400">
-                              Gas Refunded
-                            </span>
+                ).map((deposit) => {
+                  const hasIntentData = !!deposit.intentId;
+                  const statusColor = {
+                    Fulfilled: 'text-green-600 dark:text-green-400',
+                    Deposited: 'text-blue-600 dark:text-blue-400',
+                    Refunded: 'text-red-600 dark:text-red-400',
+                    Pending: 'text-yellow-600 dark:text-yellow-400',
+                  }[deposit.status || 'Pending'];
+
+                  return (
+                    <div
+                      key={deposit.id}
+                      className={`p-3 border border-gray-200 dark:border-gray-700 rounded-lg ${
+                        hasIntentData
+                          ? 'bg-purple-50 dark:bg-purple-900/10'
+                          : 'bg-gray-50 dark:bg-gray-800/50'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              {hasIntentData
+                                ? `Bridge Intent #${deposit.intentId}`
+                                : `Deposit to ${getChainName(deposit.chainId)}`}
+                            </div>
+                            {deposit.status && (
+                              <span
+                                className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColor} bg-opacity-10`}
+                              >
+                                {deposit.status}
+                              </span>
+                            )}
+                            {deposit.isPending && (
+                              <span className="text-xs text-yellow-600 dark:text-yellow-400 animate-pulse">
+                                ⏳
+                              </span>
+                            )}
+                          </div>
+                          {deposit.sources && deposit.sources.length > 0 ? (
+                            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                              <span className="font-medium">Sources:</span>
+                              {deposit.sources.map((source, idx) => (
+                                <div key={idx} className="ml-2">
+                                  • {getChainName(source.chainId)}:{' '}
+                                  {formatTokenAmount(source.amount, 18)} (
+                                  {source.tokenAddress.slice(0, 6)}...
+                                  {source.tokenAddress.slice(-4)})
+                                </div>
+                              ))}
+                            </div>
                           ) : (
-                            <span className="text-gray-500">
-                              Pending Refund
-                            </span>
+                            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                              From: {deposit.from.slice(0, 6)}...
+                              {deposit.from.slice(-4)}
+                            </div>
                           )}
+                          {deposit.destinationChainId && (
+                            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                              <span className="font-medium">Destination:</span>{' '}
+                              {getChainName(deposit.destinationChainId)}
+                              {deposit.destinationUniverse &&
+                                ` (${deposit.destinationUniverse})`}
+                            </div>
+                          )}
+                          {deposit.sourceAmount && (
+                            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                              <span className="font-medium">Amount:</span>{' '}
+                              {formatTokenAmount(deposit.sourceAmount, 18)}
+                              {deposit.destinationAmount &&
+                                deposit.destinationAmount !==
+                                  deposit.sourceAmount &&
+                                ` → ${formatTokenAmount(
+                                  deposit.destinationAmount,
+                                  18
+                                )}`}
+                            </div>
+                          )}
+                          {deposit.requestHash && (
+                            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                              Request: {deposit.requestHash.slice(0, 10)}...
+                              {deposit.requestHash.slice(-8)}
+                              {!hasIntentData && (
+                                <>
+                                  {' '}
+                                  •{' '}
+                                  {deposit.gasRefunded ? (
+                                    <span className="text-green-600 dark:text-green-400">
+                                      Gas Refunded
+                                    </span>
+                                  ) : (
+                                    <span className="text-gray-500">
+                                      Pending Refund
+                                    </span>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          )}
+                          {deposit.expiry && (
+                            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                              <span className="font-medium">Expires:</span>{' '}
+                              {new Date(deposit.expiry * 1000).toLocaleString()}
+                              {deposit.expiry * 1000 < Date.now() && (
+                                <span className="text-red-600 dark:text-red-400 ml-1">
+                                  (Expired)
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          <div className="text-xs text-gray-500 mt-1">
+                            {deposit.timestamp !== 'not found'
+                              ? new Date(deposit.timestamp).toLocaleString()
+                              : 'Not found'}
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {new Date(
-                            Number(deposit.timestamp) * 1000
-                          ).toLocaleString()}
-                        </div>
+                        {deposit.txHash && (
+                          <a
+                            href={getExplorerUrl(
+                              deposit.chainId,
+                              deposit.txHash
+                            )}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            View Tx →
+                          </a>
+                        )}
                       </div>
-                      <a
-                        href={getExplorerUrl(deposit.chainId, deposit.txHash)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        View Tx →
-                      </a>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               {renderPagination(
                 bridgeActivity.BridgeDeposit.length,
@@ -157,7 +246,6 @@ export function BridgeActivityCard({
               )}
             </div>
           )}
-
           {bridgeActivity.BridgeWithdraw.length > 0 && (
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
@@ -226,7 +314,6 @@ export function BridgeActivityCard({
               )}
             </div>
           )}
-
           {bridgeActivity.BridgeFill.length > 0 && (
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
