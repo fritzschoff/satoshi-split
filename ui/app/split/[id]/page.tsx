@@ -55,12 +55,17 @@ export default function SplitDetailPage({
     isConfirmingAddMemberToSpending,
     addMemberToSpendingError,
     isAddMemberToSpendingSuccess,
+    isAddingMember,
+    isConfirmingAddMember,
+    addMemberError,
+    isAddMemberSuccess,
     handleAddExpense,
     handlePayDebt,
     handleMemberToggle,
     handleRemoveMember,
     handleRemoveSpending,
     handleAddMemberToSpending,
+    handleAddMember,
   } = useSplitDetail(id);
 
   if (!isConnected) {
@@ -109,52 +114,9 @@ export default function SplitDetailPage({
   return (
     <div className="container mx-auto px-4 py-16">
       <div className="max-w-6xl mx-auto">
-        {isRemoveMemberSuccess && (
-          <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-            <p className="text-sm text-green-800 dark:text-green-200">
-              Member removed successfully!
-            </p>
-          </div>
-        )}
-        {removeMemberError && (
-          <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-sm text-red-800 dark:text-red-200">
-              Error removing member: {removeMemberError.message}
-            </p>
-          </div>
-        )}
-        {isRemoveSpendingSuccess && (
-          <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-            <p className="text-sm text-green-800 dark:text-green-200">
-              Expense removed successfully!
-            </p>
-          </div>
-        )}
-        {removeSpendingError && (
-          <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-sm text-red-800 dark:text-red-200">
-              Error removing expense: {removeSpendingError.message}
-            </p>
-          </div>
-        )}
-        {isAddMemberToSpendingSuccess && (
-          <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-            <p className="text-sm text-green-800 dark:text-green-200">
-              Member added to expense successfully!
-            </p>
-          </div>
-        )}
-        {addMemberToSpendingError && (
-          <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-sm text-red-800 dark:text-red-200">
-              Error adding member to expense: {addMemberToSpendingError.message}
-            </p>
-          </div>
-        )}
-
         <SplitHeader
           splitId={BigInt(id)}
-          totalDebt={split.splitDetails.data?.totalDebt.toString() || '0'}
+          totalDebt={split.splitDetails.data?.totalDebt?.toString() || '0'}
           members={split.splitDetails.data?.members || []}
           tokenSymbol={tokenSymbol}
           tokenDecimals={tokenDecimals}
@@ -163,10 +125,10 @@ export default function SplitDetailPage({
 
         <div className="grid lg:grid-cols-3 gap-6 mb-8">
           <SplitOverview
-            totalDebt={split.splitDetails.data?.totalDebt.toString() || '0'}
+            totalDebt={split.splitDetails.data?.totalDebt?.toString() || '0'}
             members={split.splitDetails.data?.members || []}
             spendings={split.spendings.data?.length || 0}
-            createdAt={split.splitDetails.data?.createdAt.toString() || '0'}
+            createdAt={split.splitDetails.data?.createdAt?.toString() || '0'}
             tokenSymbol={tokenSymbol}
             tokenDecimals={tokenDecimals}
           />
@@ -182,7 +144,12 @@ export default function SplitDetailPage({
             isConfirmingRemoveMember={isConfirmingRemoveMember}
             removeMemberError={removeMemberError}
             isRemoveMemberSuccess={isRemoveMemberSuccess}
+            isAddingMember={isAddingMember}
+            isConfirmingAddMember={isConfirmingAddMember}
+            addMemberError={addMemberError}
+            isAddMemberSuccess={isAddMemberSuccess}
             onRemoveMember={handleRemoveMember}
+            onAddMember={handleAddMember}
           />
 
           <UserDebts

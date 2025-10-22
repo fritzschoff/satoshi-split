@@ -47,16 +47,23 @@ export function useSplitDetails(splitId: bigint | undefined) {
   return useQuery({
     queryKey: ['splitDetails', splitId?.toString()],
     queryFn: async () => {
-      if (!splitId) return null;
+      if (splitId === undefined) return null;
       const result = await publicClient.readContract({
         address: SPLIT_MANAGER_ADDRESS,
         abi: SPLIT_MANAGER_ABI,
         functionName: 'getSplitDetails',
         args: [splitId],
       });
-      return result as unknown as SplitDetails;
+      return {
+        creator: result[0],
+        members: result[1],
+        createdAt: result[2],
+        totalDebt: result[3],
+        defaultToken: result[4],
+        spendingCounter: result[5],
+      } as unknown as SplitDetails;
     },
-    enabled: !!splitId,
+    enabled: splitId !== undefined,
   });
 }
 
@@ -64,7 +71,7 @@ export function useSplitSpendings(splitId: bigint | undefined) {
   return useQuery({
     queryKey: ['splitSpendings', splitId?.toString()],
     queryFn: async () => {
-      if (!splitId) return [];
+      if (splitId === undefined) return [];
       const result = await publicClient.readContract({
         address: SPLIT_MANAGER_ADDRESS,
         abi: SPLIT_MANAGER_ABI,
@@ -85,7 +92,12 @@ export function useDebt(
   return useQuery({
     queryKey: ['debt', splitId?.toString(), debtor, creditor],
     queryFn: async () => {
-      if (!splitId || !debtor || !creditor) return null;
+      if (
+        splitId === undefined ||
+        debtor === undefined ||
+        creditor === undefined
+      )
+        return null;
       const result = await publicClient.readContract({
         address: SPLIT_MANAGER_ADDRESS,
         abi: SPLIT_MANAGER_ABI,
@@ -105,7 +117,7 @@ export function useDebtorDebts(
   return useQuery({
     queryKey: ['debtorDebts', splitId?.toString(), debtor],
     queryFn: async () => {
-      if (!splitId || !debtor) return null;
+      if (splitId === undefined || debtor === undefined) return null;
       const result = await publicClient.readContract({
         address: SPLIT_MANAGER_ADDRESS,
         abi: SPLIT_MANAGER_ABI,
@@ -162,7 +174,7 @@ export function useSplitDebts(splitId: bigint | undefined) {
   return useQuery({
     queryKey: ['splitDebts', splitId?.toString()],
     queryFn: async () => {
-      if (!splitId || members.length === 0) return [];
+      if (splitId === undefined || members.length === 0) return [];
 
       const debtPromises = members.flatMap((debtor: Address) =>
         members.map(async (creditor: Address) => {
@@ -189,7 +201,7 @@ export function useMemberDebts(
   return useQuery({
     queryKey: ['memberDebts', splitIds.map((id) => id.toString()), member],
     queryFn: async () => {
-      if (!member || splitIds.length === 0) return [];
+      if (member === undefined || splitIds.length === 0) return [];
 
       const debtPromises = splitIds.map(async (splitId) => {
         const result = await publicClient.readContract({
@@ -216,7 +228,7 @@ export function useSpendingDetails(
   return useQuery({
     queryKey: ['spendingDetails', splitId?.toString(), spendingId?.toString()],
     queryFn: async () => {
-      if (!spendingId) return null;
+      if (spendingId === undefined) return null;
       const spending = spendings.data?.find((s) => s.id === spendingId);
       return spending || null;
     },

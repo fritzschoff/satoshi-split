@@ -91,6 +91,17 @@ export function useSplitDetail(splitId: string) {
     hash: addMemberToSpendingHash,
   });
 
+  const {
+    writeContract: addMemberContract,
+    data: addMemberHash,
+    isPending: isAddingMember,
+    error: addMemberError,
+  } = useWriteContract();
+  const { isLoading: isConfirmingAddMember, isSuccess: isAddMemberSuccess } =
+    useWaitForTransactionReceipt({
+      hash: addMemberHash,
+    });
+
   const defaultToken =
     splitManagerData.splitDetails.data?.defaultToken || zeroAddress;
 
@@ -128,7 +139,8 @@ export function useSplitDetail(splitId: string) {
       isPaymentSuccess ||
       isRemoveMemberSuccess ||
       isRemoveSpendingSuccess ||
-      isAddMemberToSpendingSuccess
+      isAddMemberToSpendingSuccess ||
+      isAddMemberSuccess
     ) {
       setTimeout(() => {
         splitManagerData.refetch();
@@ -140,6 +152,7 @@ export function useSplitDetail(splitId: string) {
     isRemoveMemberSuccess,
     isRemoveSpendingSuccess,
     isAddMemberToSpendingSuccess,
+    isAddMemberSuccess,
     splitManagerData.refetch,
   ]);
 
@@ -184,7 +197,7 @@ export function useSplitDetail(splitId: string) {
   const isMember =
     splitManagerData.splitDetails.data &&
     address &&
-    splitManagerData.splitDetails.data.members.some(
+    splitManagerData.splitDetails.data.members?.some(
       (member) => member.toLowerCase() === address.toLowerCase()
     );
 
@@ -256,6 +269,7 @@ export function useSplitDetail(splitId: string) {
           ],
           gas: gas,
         });
+        splitManagerData.refetch();
       } catch (simulationError) {
         console.error('Simulation failed:', simulationError);
         alert(
@@ -333,6 +347,7 @@ export function useSplitDetail(splitId: string) {
         functionName: 'removeMember',
         args: [BigInt(splitId), member as `0x${string}`],
       });
+      splitManagerData.refetch();
     } catch (err) {
       console.error('Error removing member:', err);
       alert('Error removing member. Please try again.');
@@ -349,6 +364,7 @@ export function useSplitDetail(splitId: string) {
         functionName: 'removeSpending',
         args: [BigInt(splitId), BigInt(spendingId)],
       });
+      splitManagerData.refetch();
     } catch (err) {
       console.error('Error removing spending:', err);
       alert('Error removing spending. Please try again.');
@@ -373,8 +389,26 @@ export function useSplitDetail(splitId: string) {
         functionName: 'addMemberToSpending',
         args: [BigInt(splitId), BigInt(spendingId), member as `0x${string}`],
       });
+      splitManagerData.refetch();
     } catch (err) {
       console.error('Error adding member to spending:', err);
+    }
+  };
+
+  const handleAddMember = async (member: string) => {
+    if (!splitManagerData.splitDetails.data || !address) return;
+
+    try {
+      addMemberContract({
+        address: SPLIT_CONTRACT_ADDRESS,
+        abi: SPLIT_MANAGER_ABI,
+        functionName: 'addMember',
+        args: [BigInt(splitId), member as `0x${string}`],
+      });
+      splitManagerData.refetch();
+    } catch (err) {
+      console.error('Error adding member:', err);
+      alert('Error adding member. Please try again.');
     }
   };
 
@@ -417,11 +451,16 @@ export function useSplitDetail(splitId: string) {
     isConfirmingAddMemberToSpending,
     addMemberToSpendingError,
     isAddMemberToSpendingSuccess,
+    isAddingMember,
+    isConfirmingAddMember,
+    addMemberError,
+    isAddMemberSuccess,
     handleAddExpense,
     handlePayDebt,
     handleMemberToggle,
     handleRemoveMember,
     handleRemoveSpending,
     handleAddMemberToSpending,
+    handleAddMember,
   };
 }

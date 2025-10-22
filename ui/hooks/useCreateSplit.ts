@@ -11,7 +11,6 @@ import { useRouter } from 'next/navigation';
 import { sepolia } from 'wagmi/chains';
 import { zeroAddress, decodeEventLog } from 'viem';
 import { TOKENS } from '@/constants/tokens';
-import { useLocalStorage } from '@/components/providers/LocalStorageProvider';
 
 const SPLIT_CONTRACT_ADDRESS = (process.env
   .NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS || zeroAddress) as `0x${string}`;
@@ -21,7 +20,6 @@ export function useCreateSplit() {
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
   const router = useRouter();
-  const { addPendingSplit, updateSplitId } = useLocalStorage();
 
   const [members, setMembers] = useState<string>('');
   const [selectedToken, setSelectedToken] = useState(TOKENS[0].address);
@@ -66,11 +64,6 @@ export function useCreateSplit() {
           if (decoded.eventName === 'SplitCreated') {
             const splitId = decoded.args.splitId.toString();
             setCreatedSplitId(splitId);
-
-            if (tempSplitIdRef.current) {
-              updateSplitId(tempSplitIdRef.current, splitId);
-            }
-
             setTimeout(() => {
               router.push(`/split/${splitId}`);
             }, 2000);
@@ -83,7 +76,7 @@ export function useCreateSplit() {
         }
       }
     }
-  }, [isSuccess, receipt, router, updateSplitId]);
+  }, [isSuccess, receipt, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,23 +119,6 @@ export function useCreateSplit() {
     }
 
     try {
-      const allMembers = [address, ...memberAddresses];
-
-      const tempSplitId = `temp-${Date.now()}`;
-      tempSplitIdRef.current = tempSplitId;
-
-      addPendingSplit({
-        id: tempSplitId,
-        tempId: tempSplitId,
-        creator: address,
-        members: allMembers,
-        defaultToken: selectedToken,
-        createdAt: new Date().getTime().toString(),
-        totalDebt: '0',
-        spendings: [],
-        debts: [],
-      });
-
       writeContract({
         address: SPLIT_CONTRACT_ADDRESS,
         abi: SPLIT_MANAGER_ABI,
