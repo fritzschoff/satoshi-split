@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   useAccount,
   useWriteContract,
@@ -25,7 +25,6 @@ export function useCreateSplit() {
   const [selectedToken, setSelectedToken] = useState(TOKENS[0].address);
   const [validationError, setValidationError] = useState<string>('');
   const [createdSplitId, setCreatedSplitId] = useState<string | null>(null);
-  const tempSplitIdRef = useRef<string | null>(null);
 
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const {
