@@ -1,14 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Debt } from '@/types/web3';
-import {
-  getTokenSymbol,
-  getTokenDecimals,
-  formatTokenAmount,
-} from '@/utils/token';
+import { getTokenDecimals, formatTokenAmount } from '@/utils/token';
+import { useDebtorDebts } from '@/hooks/useSplitManager';
+import { useAccount } from 'wagmi';
+import { zeroAddress } from 'viem';
 
 interface UserDebtsProps {
-  debts: Debt[];
+  splitId: bigint;
   defaultToken: string;
   isPayingDebt: boolean;
   isConfirmingPayment: boolean;
@@ -22,7 +20,7 @@ interface UserDebtsProps {
 }
 
 export function UserDebts({
-  debts,
+  splitId,
   defaultToken,
   isPayingDebt,
   isConfirmingPayment,
@@ -34,6 +32,10 @@ export function UserDebts({
   isPaymentSuccess,
   onPayDebt,
 }: UserDebtsProps) {
+  const { address } = useAccount();
+  const { data: debts } = useDebtorDebts(splitId, address);
+  const creditors = debts?.creditors || [];
+  const amounts = debts?.amounts || [];
   return (
     <Card>
       <CardHeader>
@@ -72,18 +74,12 @@ export function UserDebts({
           </div>
         )}
 
-        {debts && debts.length > 0 ? (
+        {creditors && creditors.length > 0 ? (
           <div className="space-y-3">
-            {debts.map((debt) => {
-              const debtSymbol = getTokenSymbol(debt.token || defaultToken);
-              const debtDecimals = getTokenDecimals(debt.token || defaultToken);
-              const isETH =
-                (debt.token || defaultToken) ===
-                '0x0000000000000000000000000000000000000000';
-
+            {creditors.map((creditor, index) => {
               return (
                 <div
-                  key={debt.id}
+                  key={creditor.concat(index.toString())}
                   className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
                 >
                   <div>
@@ -91,36 +87,33 @@ export function UserDebts({
                       You owe
                     </div>
                     <div className="font-mono text-sm mt-1">
-                      {debt.creditor.slice(0, 6)}...
-                      {debt.creditor.slice(-4)}
+                      {creditor.slice(0, 6)}...
+                      {creditor.slice(-4)}
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="font-bold text-lg text-gray-900 dark:text-white">
-                      {formatTokenAmount(debt.amount, debtDecimals)}{' '}
-                      {debtSymbol}
+                      {formatTokenAmount(
+                        amounts[index].toString(),
+                        getTokenDecimals(defaultToken)
+                      )}{' '}
+                      {defaultToken}
                     </div>
                     <Button
                       size="sm"
                       className="mt-2"
                       onClick={() =>
-                        onPayDebt(debt.creditor, debt.amount, isETH)
+                        onPayDebt(
+                          creditor,
+                          amounts[index].toString(),
+                          defaultToken === zeroAddress
+                        )
                       }
-                      isLoading={
-                        isPayingDebt ||
-                        isConfirmingPayment ||
-                        isApprovingExpense ||
-                        isConfirmingApproval
-                      }
-                      disabled={
-                        isPayingDebt ||
-                        isConfirmingPayment ||
-                        isApprovingExpense ||
-                        isConfirmingApproval
-                      }
+                      isLoading={isPayingDebt || isConfirmingPayment}
+                      disabled={isPayingDebt || isConfirmingPayment}
                     >
-                      {isApprovingExpense || isConfirmingApproval
-                        ? 'Approving...'
+                      {isPayingDebt || isConfirmingPayment
+                        ? 'Paying...'
                         : 'Pay Debt'}
                     </Button>
                   </div>

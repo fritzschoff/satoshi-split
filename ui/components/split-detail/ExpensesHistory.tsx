@@ -1,37 +1,45 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Spending, Split } from '@/types/web3';
 import {
   getTokenSymbol,
   getTokenDecimals,
   formatTokenAmount,
 } from '@/utils/token';
+import { Spending } from '@/types/web3';
 
 interface ExpensesHistoryProps {
   spendings: Spending[];
+  members: string[];
   defaultToken: string;
-  split?: Split;
   currentAddress?: string;
   isCreator?: boolean;
   isRemovingSpending?: boolean;
   isConfirmingRemoveSpending?: boolean;
+  removeSpendingError?: Error | null;
+  isRemoveSpendingSuccess?: boolean;
   isAddingMemberToSpending?: boolean;
   isConfirmingAddMemberToSpending?: boolean;
+  addMemberToSpendingError?: Error | null;
+  isAddMemberToSpendingSuccess?: boolean;
   onRemoveSpending?: (spendingId: string) => void;
   onAddMemberToSpending?: (spendingId: string, member: string) => void;
 }
 
 export function ExpensesHistory({
   spendings,
+  members,
   defaultToken,
-  split,
   currentAddress,
   isCreator,
   isRemovingSpending,
   isConfirmingRemoveSpending,
+  removeSpendingError,
+  isRemoveSpendingSuccess,
   isAddingMemberToSpending,
   isConfirmingAddMemberToSpending,
+  addMemberToSpendingError,
+  isAddMemberToSpendingSuccess,
   onRemoveSpending,
   onAddMemberToSpending,
 }: ExpensesHistoryProps) {
@@ -44,6 +52,51 @@ export function ExpensesHistory({
         <CardTitle>Expenses History</CardTitle>
       </CardHeader>
       <CardContent>
+        {(isRemovingSpending ||
+          isConfirmingRemoveSpending ||
+          isAddingMemberToSpending ||
+          isConfirmingAddMemberToSpending) && (
+          <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <p className="text-xs text-blue-800 dark:text-blue-200">
+              {isRemovingSpending || isAddingMemberToSpending
+                ? 'Waiting for approval...'
+                : 'Confirming transaction...'}
+            </p>
+          </div>
+        )}
+
+        {isRemoveSpendingSuccess && (
+          <div className="mb-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <p className="text-xs text-green-800 dark:text-green-200">
+              Expense removed successfully!
+            </p>
+          </div>
+        )}
+
+        {removeSpendingError && (
+          <div className="mb-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-xs text-red-800 dark:text-red-200">
+              Error: {removeSpendingError.message}
+            </p>
+          </div>
+        )}
+
+        {isAddMemberToSpendingSuccess && (
+          <div className="mb-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <p className="text-xs text-green-800 dark:text-green-200">
+              Member added to expense successfully!
+            </p>
+          </div>
+        )}
+
+        {addMemberToSpendingError && (
+          <div className="mb-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-xs text-red-800 dark:text-red-200">
+              Error: {addMemberToSpendingError.message}
+            </p>
+          </div>
+        )}
+
         {spendings.length > 0 ? (
           <div className="space-y-3">
             {spendings.map((spending) => {
@@ -60,14 +113,12 @@ export function ExpensesHistory({
               const isExpanded = expandedSpendingId === spending.id;
               const isPending = spending.id.startsWith('pending-');
 
-              const membersNotInSpending = split
-                ? split.members.filter(
-                    (member) =>
-                      !spending.forWho
-                        .map((m) => m.toLowerCase())
-                        .includes(member.toLowerCase())
-                  )
-                : [];
+              const membersNotInSpending = members.filter(
+                (member) =>
+                  !spending.forWho
+                    .map((m) => m.toLowerCase())
+                    .includes(member.toLowerCase())
+              );
 
               return (
                 <div
@@ -122,7 +173,9 @@ export function ExpensesHistory({
                     </button>
                     {canRemove && onRemoveSpending && !isPending && (
                       <Button
-                        onClick={() => onRemoveSpending(spending.id)}
+                        onClick={() => {
+                          onRemoveSpending(spending.spendingId);
+                        }}
                         disabled={
                           isRemovingSpending || isConfirmingRemoveSpending
                         }
@@ -167,7 +220,10 @@ export function ExpensesHistory({
                                 <Button
                                   key={member}
                                   onClick={() =>
-                                    onAddMemberToSpending(spending.id, member)
+                                    onAddMemberToSpending(
+                                      spending.spendingId,
+                                      member
+                                    )
                                   }
                                   disabled={
                                     isAddingMemberToSpending ||

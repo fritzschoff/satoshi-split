@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Split } from '@/types/web3';
 import Link from 'next/link';
 import { TOKEN_SYMBOLS } from '@/constants/tokens';
+import { zeroAddress } from 'viem';
 
 interface SplitCardProps {
   split: Split;
@@ -49,7 +50,9 @@ export function SplitCard({ split, currentAddress }: SplitCardProps) {
                 Total Debt
               </span>
               <span className="font-semibold text-gray-900 dark:text-white">
-                ${(Number(split.totalDebt) / 1e6).toFixed(2)}
+                {split.defaultToken.toLowerCase() === zeroAddress
+                  ? (Number(split.totalDebt) / 1e18).toFixed(4)
+                  : (Number(split.totalDebt) / 1e6).toFixed(2)}
               </span>
             </div>
 

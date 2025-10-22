@@ -31,7 +31,6 @@ export default function SplitDetailPage({
     tokenDecimals,
     isCreator,
     isMember,
-    userDebts,
     isAddingExpense,
     isConfirmingExpense,
     expenseError,
@@ -110,8 +109,53 @@ export default function SplitDetailPage({
   return (
     <div className="container mx-auto px-4 py-16">
       <div className="max-w-6xl mx-auto">
+        {isRemoveMemberSuccess && (
+          <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <p className="text-sm text-green-800 dark:text-green-200">
+              Member removed successfully!
+            </p>
+          </div>
+        )}
+        {removeMemberError && (
+          <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm text-red-800 dark:text-red-200">
+              Error removing member: {removeMemberError.message}
+            </p>
+          </div>
+        )}
+        {isRemoveSpendingSuccess && (
+          <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <p className="text-sm text-green-800 dark:text-green-200">
+              Expense removed successfully!
+            </p>
+          </div>
+        )}
+        {removeSpendingError && (
+          <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm text-red-800 dark:text-red-200">
+              Error removing expense: {removeSpendingError.message}
+            </p>
+          </div>
+        )}
+        {isAddMemberToSpendingSuccess && (
+          <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <p className="text-sm text-green-800 dark:text-green-200">
+              Member added to expense successfully!
+            </p>
+          </div>
+        )}
+        {addMemberToSpendingError && (
+          <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm text-red-800 dark:text-red-200">
+              Error adding member to expense: {addMemberToSpendingError.message}
+            </p>
+          </div>
+        )}
+
         <SplitHeader
-          split={split}
+          splitId={BigInt(id)}
+          totalDebt={split.splitDetails.data?.totalDebt.toString() || '0'}
+          members={split.splitDetails.data?.members || []}
           tokenSymbol={tokenSymbol}
           tokenDecimals={tokenDecimals}
           isCreator={!!isCreator}
@@ -119,22 +163,30 @@ export default function SplitDetailPage({
 
         <div className="grid lg:grid-cols-3 gap-6 mb-8">
           <SplitOverview
-            split={split}
+            totalDebt={split.splitDetails.data?.totalDebt.toString() || '0'}
+            members={split.splitDetails.data?.members || []}
+            spendings={split.spendings.data?.length || 0}
+            createdAt={split.splitDetails.data?.createdAt.toString() || '0'}
             tokenSymbol={tokenSymbol}
             tokenDecimals={tokenDecimals}
           />
 
           <MembersList
-            split={split}
+            members={split.splitDetails.data?.members || []}
+            creator={split.splitDetails.data?.creator || ''}
+            isCreatorMember={!!isCreator}
+            isMember={!!isMember}
             currentAddress={address}
             isCreator={!!isCreator}
             isRemovingMember={isRemovingMember}
             isConfirmingRemoveMember={isConfirmingRemoveMember}
+            removeMemberError={removeMemberError}
+            isRemoveMemberSuccess={isRemoveMemberSuccess}
             onRemoveMember={handleRemoveMember}
           />
 
           <UserDebts
-            debts={userDebts || []}
+            splitId={BigInt(id)}
             defaultToken={defaultToken}
             isPayingDebt={isPayingDebt}
             isApprovingExpense={isApprovingExpense}
@@ -150,7 +202,7 @@ export default function SplitDetailPage({
 
         <div className="mb-8">
           <AddExpenseForm
-            split={split}
+            members={split.splitDetails.data?.members || []}
             expenseTitle={expenseTitle}
             expenseAmount={expenseAmount}
             selectedMembers={selectedMembers}
@@ -170,15 +222,32 @@ export default function SplitDetailPage({
         </div>
 
         <ExpensesHistory
-          spendings={split.spendings}
+          spendings={
+            split.spendings.data?.map((spending) => ({
+              id: spending.id.toString(),
+              spendingId: spending.id.toString(),
+              title: spending.title,
+              payer: spending.payer,
+              amount: spending.amount.toString(),
+              forWho: spending.forWho,
+              timestamp: spending.timestamp.toString(),
+              token: spending.token,
+              txHash: '',
+              chainId: 11155111,
+            })) || []
+          }
           defaultToken={defaultToken}
-          split={split}
+          members={split.splitDetails.data?.members || []}
           currentAddress={address}
           isCreator={!!isCreator}
           isRemovingSpending={isRemovingSpending}
           isConfirmingRemoveSpending={isConfirmingRemoveSpending}
+          removeSpendingError={removeSpendingError}
+          isRemoveSpendingSuccess={isRemoveSpendingSuccess}
           isAddingMemberToSpending={isAddingMemberToSpending}
           isConfirmingAddMemberToSpending={isConfirmingAddMemberToSpending}
+          addMemberToSpendingError={addMemberToSpendingError}
+          isAddMemberToSpendingSuccess={isAddMemberToSpendingSuccess}
           onRemoveSpending={handleRemoveSpending}
           onAddMemberToSpending={handleAddMemberToSpending}
         />

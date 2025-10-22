@@ -1,6 +1,5 @@
 'use client';
 
-// Load polyfills first
 import '@/lib/polyfills';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -16,7 +15,6 @@ import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { NexusProvider } from '@avail-project/nexus-widgets';
 import { ThemeProvider, useTheme } from './ThemeProvider';
-import { LocalStorageProvider } from './LocalStorageProvider';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -80,23 +78,21 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeProvider>
-      <LocalStorageProvider>
-        <NexusProvider
-          config={{
-            network: 'testnet',
-            debug: process.env.NODE_ENV === 'development',
-          }}
-        >
-          <WagmiProvider config={config}>
-            <QueryClientProvider client={queryClient}>
-              <RainbowKitThemeWrapper>
-                {mounted && <WalletCookieSync />}
-                {children}
-              </RainbowKitThemeWrapper>
-            </QueryClientProvider>
-          </WagmiProvider>
-        </NexusProvider>
-      </LocalStorageProvider>
+      <NexusProvider
+        config={{
+          network: 'testnet',
+          debug: process.env.NODE_ENV === 'development',
+        }}
+      >
+        <WagmiProvider config={config}>
+          <QueryClientProvider client={queryClient}>
+            <RainbowKitThemeWrapper>
+              {mounted && <WalletCookieSync />}
+              {children}
+            </RainbowKitThemeWrapper>
+          </QueryClientProvider>
+        </WagmiProvider>
+      </NexusProvider>
     </ThemeProvider>
   );
 }

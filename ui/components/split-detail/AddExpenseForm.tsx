@@ -5,7 +5,7 @@ import { Split } from '@/types/web3';
 import { useChainId } from 'wagmi';
 
 interface AddExpenseFormProps {
-  split: Split;
+  members: string[];
   expenseTitle: string;
   expenseAmount: string;
   selectedMembers: string[];
@@ -24,7 +24,7 @@ interface AddExpenseFormProps {
 }
 
 export function AddExpenseForm({
-  split,
+  members,
   expenseTitle,
   expenseAmount,
   selectedMembers,
@@ -95,7 +95,7 @@ export function AddExpenseForm({
               Split among (check all who participated)
             </label>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {split.members.map((member) => {
+              {members.map((member) => {
                 const isChecked = selectedMembers.includes(member);
                 return (
                   <label

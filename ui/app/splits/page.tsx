@@ -161,7 +161,7 @@ export default function SplitsPage() {
                         key={tokenAddress}
                         className="text-lg font-bold text-gray-900 dark:text-white"
                       >
-                        {formattedDebt} {symbol}
+                        {formattedDebt} {symbol} here
                       </div>
                     );
                   }
