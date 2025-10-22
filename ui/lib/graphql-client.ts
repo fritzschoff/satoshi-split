@@ -1,10 +1,7 @@
 import { GraphQLClient } from 'graphql-request';
 
 const ENVIO_GRAPHQL_URL =
-  (process.env.NEXT_PUBLIC_NODE_ENV === 'production'
-    ? process.env.NEXT_PUBLIC_ENVIO_GRAPHQL_URL_PROD
-    : process.env.NEXT_PUBLIC_ENVIO_GRAPHQL_URL_DEV) ||
-  'http://localhost:8080/v1/graphql';
+  process.env.NEXT_PUBLIC_ENVIO_GRAPHQL_URL_PROD || 'NOT FOUND';
 
 export const graphqlClient = new GraphQLClient(ENVIO_GRAPHQL_URL);
 
