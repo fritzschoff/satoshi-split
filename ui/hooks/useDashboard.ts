@@ -151,7 +151,6 @@ export function useDashboard() {
         : intent.deposited
         ? 'Deposited'
         : 'Pending';
-      console.log(existingActivity);
       if (existingActivity) {
         return {
           ...existingActivity,
@@ -233,14 +232,6 @@ export function useDashboard() {
         }
       ),
     };
-
-    console.log('Updated Bridge Activity with Intents:', {
-      totalDeposits: updatedBridgeActivity.BridgeDeposit.length,
-      intentsProcessed: myIntents.length,
-      enrichedDeposits: enrichedDeposits.length,
-      sampleIntent: myIntents[0],
-      sampleEnrichedDeposit: enrichedDeposits[0],
-    });
 
     return updatedBridgeActivity;
   }, [bridgeActivity, myIntents, address]);

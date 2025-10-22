@@ -36,8 +36,6 @@ export default function SplitDetailPage({
     expenseError,
     isExpenseSuccess,
     isPayingDebt,
-    isApprovingExpense,
-    isConfirmingApproval,
     approveError,
     isApprovalSuccess,
     isConfirmingPayment,
@@ -67,7 +65,6 @@ export default function SplitDetailPage({
     handleAddMemberToSpending,
     handleAddMember,
   } = useSplitDetail(id);
-
   if (!isConnected) {
     return (
       <div className="container mx-auto px-4 py-16">
@@ -156,8 +153,6 @@ export default function SplitDetailPage({
             splitId={BigInt(id)}
             defaultToken={defaultToken}
             isPayingDebt={isPayingDebt}
-            isApprovingExpense={isApprovingExpense}
-            isConfirmingApproval={isConfirmingApproval}
             approveError={approveError}
             isApprovalSuccess={isApprovalSuccess}
             isConfirmingPayment={isConfirmingPayment}

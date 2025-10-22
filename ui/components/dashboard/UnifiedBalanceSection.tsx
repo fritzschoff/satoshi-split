@@ -1,7 +1,7 @@
 import { MetricCard } from './MetricCard';
 import { TokenBalanceCard } from './TokenBalanceCard';
 import { Button } from '@/components/ui/Button';
-import { UserAsset, SUPPORTED_TOKENS, RFF } from '@avail-project/nexus-widgets';
+import { UserAsset, SUPPORTED_TOKENS } from '@avail-project/nexus-widgets';
 import {
   SUPPORTED_TOKENS_BY_SYMBOL,
   SUPPORTED_CHAINS,

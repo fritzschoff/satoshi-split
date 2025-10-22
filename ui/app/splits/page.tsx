@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { Split } from '@/types/web3';
 import { SplitCard } from '@/components/splits/SplitCard';
 import { Card, CardContent } from '@/components/ui/Card';
 import { useGetAllSplits } from '@/hooks/useGraphQLQueries';
@@ -13,10 +12,9 @@ import { TOKEN_SYMBOLS, TOKEN_DECIMALS } from '@/constants/tokens';
 
 export default function SplitsPage() {
   const { address, isConnected } = useAccount();
-  const { data: splits = [], isLoading } = useGetAllSplits(100, 0);
+  const { data: splits = [], isLoading } = useGetAllSplits();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'my' | 'admin'>('all');
-
   const filteredSplits = useMemo(() => {
     let filtered = splits;
 
@@ -161,7 +159,7 @@ export default function SplitsPage() {
                         key={tokenAddress}
                         className="text-lg font-bold text-gray-900 dark:text-white"
                       >
-                        {formattedDebt} {symbol} here
+                        {formattedDebt} {symbol}
                       </div>
                     );
                   }

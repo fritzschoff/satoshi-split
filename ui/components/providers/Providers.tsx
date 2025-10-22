@@ -15,6 +15,7 @@ import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { NexusProvider } from '@avail-project/nexus-widgets';
 import { ThemeProvider, useTheme } from './ThemeProvider';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -86,6 +87,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       >
         <WagmiProvider config={config}>
           <QueryClientProvider client={queryClient}>
+            <ReactQueryDevtools initialIsOpen={false} />
             <RainbowKitThemeWrapper>
               {mounted && <WalletCookieSync />}
               {children}

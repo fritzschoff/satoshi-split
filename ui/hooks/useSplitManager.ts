@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { SPLIT_MANAGER_ABI } from '@/constants/contract-abi';
 import { Address, createPublicClient, http, zeroAddress } from 'viem';
 import { sepolia } from 'viem/chains';
+import { Split } from '@/types/web3';
 
 const SPLIT_MANAGER_ADDRESS = (process.env.NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS ||
   zeroAddress) as `0x${string}`;
@@ -80,7 +81,7 @@ export function useSplitSpendings(splitId: bigint | undefined) {
       });
       return result as Spending[];
     },
-    enabled: !!splitId,
+    enabled: splitId !== undefined,
   });
 }
 
@@ -140,6 +141,32 @@ export function useSplitIdCounter() {
         functionName: 'splitIdCounter',
       });
       return result as bigint;
+    },
+  });
+}
+
+export function useGetAllSplits() {
+  return useQuery({
+    queryKey: ['getAllSplits'],
+    queryFn: async () => {
+      const splitCounter = await publicClient.readContract({
+        address: SPLIT_MANAGER_ADDRESS,
+        abi: SPLIT_MANAGER_ABI,
+        functionName: 'splitIdCounter',
+      });
+
+      const splits = await Promise.all(
+        Array.from({ length: Number(splitCounter) }, async (_, index) => {
+          const result = await publicClient.readContract({
+            address: SPLIT_MANAGER_ADDRESS,
+            abi: SPLIT_MANAGER_ABI,
+            functionName: 'splits',
+            args: [BigInt(index)],
+          });
+          return result as unknown as Split;
+        })
+      );
+      return splits;
     },
   });
 }
@@ -246,20 +273,6 @@ export function useSplitExists(splitId: bigint | undefined) {
       return (splitIdCounter.data || BigInt(0)) > splitId;
     },
     enabled: !!splitId && !!splitIdCounter.data,
-  });
-}
-
-export function useContractStats() {
-  const splitIdCounter = useSplitIdCounter();
-
-  return useQuery({
-    queryKey: ['contractStats'],
-    queryFn: async () => {
-      return {
-        totalSplits: splitIdCounter.data || BigInt(0),
-      };
-    },
-    enabled: !!splitIdCounter.data,
   });
 }
 

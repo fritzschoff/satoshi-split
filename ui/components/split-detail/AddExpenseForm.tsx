@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Split } from '@/types/web3';
 import { useChainId } from 'wagmi';
 
 interface AddExpenseFormProps {

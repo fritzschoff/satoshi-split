@@ -1,4 +1,3 @@
-import { Split } from '@/types/web3';
 import { formatTokenAmount } from '@/utils/token';
 
 interface SplitHeaderProps {

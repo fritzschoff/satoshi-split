@@ -8,7 +8,7 @@ import { TransactionMetrics } from '@/components/dashboard/TransactionMetrics';
 import { BridgeActivityCard } from '@/components/dashboard/BridgeActivityCard';
 import { SplitsList } from '@/components/dashboard/SplitsList';
 import { useDashboard } from '@/hooks/useDashboard';
-import { useEffect } from 'react';
+import { BridgeActivity } from '@/types/web3';
 
 export default function DashboardPage() {
   const {
@@ -35,7 +35,6 @@ export default function DashboardPage() {
     handleMaxAmount,
     handleBridge,
     isInitializationLoading,
-    myIntents,
   } = useDashboard();
 
   if (!isConnected) {
@@ -106,7 +105,7 @@ export default function DashboardPage() {
         <TransactionMetrics
           userActivity={userActivity}
           splits={splits}
-          bridgeActivity={bridgeActivity}
+          bridgeActivity={bridgeActivity as BridgeActivity}
         />
 
         {bridgeActivity &&
@@ -114,7 +113,9 @@ export default function DashboardPage() {
             bridgeActivity.BridgeFill.length > 0 ||
             bridgeActivity.BridgeWithdraw.length > 0) && (
             <div className="mb-8">
-              <BridgeActivityCard bridgeActivity={bridgeActivity} />
+              <BridgeActivityCard
+                bridgeActivity={bridgeActivity as BridgeActivity}
+              />
             </div>
           )}
 

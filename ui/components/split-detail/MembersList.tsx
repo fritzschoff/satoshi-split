@@ -24,8 +24,6 @@ interface MembersListProps {
 export function MembersList({
   members,
   creator,
-  isCreatorMember,
-  isMember,
   currentAddress,
   isCreator,
   isRemovingMember,

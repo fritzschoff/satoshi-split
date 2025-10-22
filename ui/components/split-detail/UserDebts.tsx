@@ -10,8 +10,6 @@ interface UserDebtsProps {
   defaultToken: string;
   isPayingDebt: boolean;
   isConfirmingPayment: boolean;
-  isApprovingExpense: boolean;
-  isConfirmingApproval: boolean;
   approveError: Error | null;
   isApprovalSuccess: boolean;
   paymentError: Error | null;
@@ -24,8 +22,6 @@ export function UserDebts({
   defaultToken,
   isPayingDebt,
   isConfirmingPayment,
-  isApprovingExpense,
-  isConfirmingApproval,
   approveError,
   isApprovalSuccess,
   paymentError,
