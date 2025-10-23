@@ -1,3 +1,6 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import {
@@ -9,7 +12,8 @@ import { useDebtorDebts } from '@/hooks/useSplitManager';
 import { useAccount } from 'wagmi';
 import { useGetNexus } from '@/hooks/useGetNexus';
 import { SUPPORTED_TOKENS } from '@avail-project/nexus-widgets';
-import { useState } from 'react';
+import { sepolia } from 'viem/chains';
+import { formatUnits } from 'viem';
 
 interface UserDebtsProps {
   splitId: bigint;
@@ -34,10 +38,67 @@ export function UserDebts({
 }: UserDebtsProps) {
   const { address } = useAccount();
   const { data: debts } = useDebtorDebts(splitId, address);
-  const { payDebt, initSDK, isInitializationLoading, isInitialized } =
-    useGetNexus();
+  const [isBridging, setIsBridging] = useState(false);
+  const {
+    payDebt,
+    initSDK,
+    isInitializationLoading,
+    isInitialized,
+    checkBalanceAndPlan,
+    bridge,
+  } = useGetNexus();
   const [creditors, amounts] = debts || [];
 
+  const [balancePlans, setBalancePlans] = useState<string[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchPlans() {
+      if (
+        !isInitialized ||
+        !amounts ||
+        !Array.isArray(amounts) ||
+        amounts.length === 0 ||
+        !creditors ||
+        !Array.isArray(creditors) ||
+        creditors.length === 0
+      ) {
+        setBalancePlans([]);
+        return;
+      }
+      const plans: string[] = await Promise.all(
+        creditors.map(async (_creditor, index) => {
+          try {
+            return await checkBalanceAndPlan(
+              amounts[index] || BigInt(0),
+              getTokenSymbol(defaultToken) as SUPPORTED_TOKENS
+            );
+          } catch (e) {
+            return 'Error fetching plan.';
+          }
+        })
+      );
+      if (isMounted) setBalancePlans(plans);
+    }
+
+    fetchPlans();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isInitialized, amounts, creditors, defaultToken, checkBalanceAndPlan]);
+
+  const handleBridge = async (amount: string) => {
+    console.log(amount, defaultToken);
+    setIsBridging(true);
+    await bridge(
+      getTokenSymbol(defaultToken) as SUPPORTED_TOKENS,
+      formatUnits(BigInt(amount), getTokenDecimals(defaultToken)),
+      sepolia.id
+    );
+    setIsBridging(false);
+    window.location.reload();
+  };
   return (
     <Card>
       <CardHeader>
@@ -58,7 +119,7 @@ export function UserDebts({
         {isApprovalSuccess && (
           <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
             <p className="text-sm text-green-800 dark:text-green-200">
-              ✅ Token approval successful!
+              Token approval successful!
             </p>
           </div>
         )}
@@ -77,7 +138,7 @@ export function UserDebts({
         {isPaymentSuccess && (
           <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
             <p className="text-sm text-green-800 dark:text-green-200">
-              ✅ Debt payment successful!
+              Debt payment successful!
             </p>
           </div>
         )}
@@ -126,50 +187,69 @@ export function UserDebts({
         creditors.length > 0 ? (
           <div className="space-y-3">
             {creditors.map((creditor, index) => (
-              <div
-                key={creditor || 'creditor'}
-                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-              >
-                <div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
-                    You owe
+              <>
+                <div
+                  key={creditor || 'creditor'}
+                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                >
+                  <div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      You owe
+                    </div>
+                    <div className="font-mono text-sm mt-1">
+                      {creditor?.slice(0, 6)}...
+                      {creditor?.slice(-4)}
+                    </div>
                   </div>
-                  <div className="font-mono text-sm mt-1">
-                    {creditor?.slice(0, 6)}...
-                    {creditor?.slice(-4)}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-bold text-lg text-gray-900 dark:text-white">
-                    {formatTokenAmount(
-                      amounts[index]?.toString() || '0',
-                      getTokenDecimals(defaultToken)
-                    )}{' '}
-                    {getTokenSymbol(defaultToken)}
-                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-lg text-gray-900 dark:text-white">
+                      {formatTokenAmount(
+                        amounts[index]?.toString() || '0',
+                        getTokenDecimals(defaultToken)
+                      )}{' '}
+                      {getTokenSymbol(defaultToken)}
+                    </div>
 
-                  <Button
-                    size="sm"
-                    className="mt-2"
-                    onClick={() =>
-                      payDebt(
-                        getTokenSymbol(defaultToken) as SUPPORTED_TOKENS,
-                        amounts[index] || BigInt(0),
-                        splitId,
-                        creditor
-                      )
-                    }
-                    isLoading={isPayingDebt || isConfirmingPayment}
-                    disabled={isPayingDebt || isConfirmingPayment}
-                  >
-                    {isPayingDebt || isConfirmingPayment
-                      ? 'Paying...'
-                      : !isInitialized
-                      ? 'Initializing...'
-                      : 'Pay Debt'}
-                  </Button>
+                    <Button
+                      size="sm"
+                      className="mt-2"
+                      onClick={() =>
+                        payDebt(
+                          getTokenSymbol(defaultToken) as SUPPORTED_TOKENS,
+                          amounts[index] || BigInt(0),
+                          splitId,
+                          creditor
+                        )
+                      }
+                      isLoading={isPayingDebt || isConfirmingPayment}
+                      disabled={isPayingDebt || isConfirmingPayment}
+                    >
+                      {isPayingDebt || isConfirmingPayment
+                        ? 'Paying...'
+                        : !isInitialized
+                        ? 'Initializing...'
+                        : 'Pay Debt'}
+                    </Button>
+                  </div>
                 </div>
-              </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">
+                  {balancePlans[index] ||
+                    (amounts[index] ? 'Calculating payment plan...' : '')}
+                  {balancePlans[index]?.includes('You need to bridge') && (
+                    <Button
+                      isLoading={isBridging}
+                      disabled={isBridging}
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => {
+                        handleBridge(amounts[index]?.toString() || '0');
+                      }}
+                    >
+                      Bridge
+                    </Button>
+                  )}
+                </div>
+              </>
             ))}
           </div>
         ) : (

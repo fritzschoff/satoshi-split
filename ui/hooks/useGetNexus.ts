@@ -1,29 +1,26 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import {
-  useAccount,
-  usePublicClient,
-  useWaitForTransactionReceipt,
-  useWalletClient,
-  useWriteContract,
-} from 'wagmi';
+import { useEffect, useState, useCallback } from 'react';
+import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import {
   useNexus,
   UserAsset,
   EthereumProvider,
-  SUPPORTED_TOKENS,
   SUPPORTED_CHAINS_IDS,
   RFF,
+  SUPPORTED_TOKENS,
 } from '@avail-project/nexus-widgets';
 import { SPLIT_MANAGER_ABI } from '@/constants/contract-abi';
-import { Split } from '@/types/web3';
-import { erc20Abi } from 'viem';
-import { getTokenAddress } from '@/utils/token';
+import { erc20Abi, formatUnits, parseUnits } from 'viem';
+import { getTokenAddress, getTokenDecimals } from '@/utils/token';
+import { CHAIN_NAMES } from '@/constants/chains';
+import { useQueryClient } from '@tanstack/react-query';
+import { sepolia } from 'viem/chains';
 
 export function useGetNexus() {
   const { address } = useAccount();
   const publicClient = usePublicClient();
+  const walletClient = useWalletClient();
   const [error, setError] = useState<Error | null>(null);
   const { isConnected, connector } = useAccount();
   const [unifiedBalance, setUnifiedBalance] = useState<UserAsset[] | null>(
@@ -37,34 +34,7 @@ export function useGetNexus() {
     sdk: nexus,
     isSdkInitialized: isInitialized,
   } = useNexus();
-
-  const {
-    writeContract: writeContractApprove,
-    data: hashApprove,
-    isPending: isPendingApprove,
-    error: errorApprove,
-  } = useWriteContract();
-  const {
-    isLoading: isConfirmingApprove,
-    isSuccess: isSuccessApprove,
-    data: receiptApprove,
-  } = useWaitForTransactionReceipt({
-    hash: hashApprove,
-  });
-
-  const {
-    writeContract: writeContractPay,
-    data: hashPay,
-    isPending: isPendingPay,
-    error: errorPay,
-  } = useWriteContract();
-  const {
-    isLoading: isConfirming,
-    isSuccess,
-    data: receiptPay,
-  } = useWaitForTransactionReceipt({
-    hash: hashPay,
-  });
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (isInitialized && !myIntents) {
@@ -101,7 +71,7 @@ export function useGetNexus() {
     toChainId: number
   ) => {
     return await nexus.simulateBridge({
-      amount: Number(amount),
+      amount: formatUnits(BigInt(amount), getTokenDecimals(token)),
       chainId: toChainId as SUPPORTED_CHAINS_IDS,
       token: token,
     });
@@ -110,62 +80,25 @@ export function useGetNexus() {
   const bridge = async (
     token: SUPPORTED_TOKENS,
     amount: string,
-    toChainId: number
+    toChainId: number,
+    fromChainId?: number
   ) => {
+    const fromChain = fromChainId
+      ? [fromChainId]
+      : Object.keys(CHAIN_NAMES)
+          .filter((key) => key !== toChainId.toString())
+          .map((key) => parseInt(key));
     try {
       return await nexus.bridge({
         amount: Number(amount),
         chainId: toChainId as SUPPORTED_CHAINS_IDS,
         token: token,
+        sourceChains: fromChain,
       });
     } catch (error) {
       console.error('Error bridging:', error);
       setError(error instanceof Error ? error : new Error('Failed to bridge'));
       throw error;
-    }
-  };
-
-  const simulateBridgeAndExecute = async (
-    token: SUPPORTED_TOKENS,
-    debt: string,
-    split: Split,
-    creditor: string
-  ) => {
-    try {
-      const SEPOLIA_CHAIN_ID = 11155111;
-
-      return await nexus.simulateBridgeAndExecute({
-        amount: debt,
-        toChainId: SEPOLIA_CHAIN_ID,
-        token: token,
-        execute: {
-          contractAbi: SPLIT_MANAGER_ABI,
-          functionName: 'payDebt',
-          contractAddress: process.env
-            .NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS as `0x${string}`,
-          buildFunctionParams: () => {
-            return {
-              functionParams: [split.id, creditor, debt],
-              ...(token === 'ETH' ? { value: debt } : {}),
-            };
-          },
-          ...(token !== 'ETH'
-            ? {
-                tokenApproval: {
-                  token: token,
-                  amount: debt,
-                },
-              }
-            : {}),
-        },
-      });
-    } catch (error) {
-      console.error('Error simulating bridge and execute:', error);
-      setError(
-        error instanceof Error
-          ? error
-          : new Error('Failed to simulate bridge and execute')
-      );
     }
   };
 
@@ -176,92 +109,65 @@ export function useGetNexus() {
     creditor: string
   ) => {
     try {
-      const SEPOLIA_CHAIN_ID = 11155111;
+      if (!walletClient.data) {
+        throw new Error('Wallet client not available');
+      }
 
-      const tokenBalanceOnSepolia = unifiedBalance
-        ?.find(
-          (asset) =>
-            asset.symbol === token &&
-            asset.breakdown.find((item) => item.chain.id === SEPOLIA_CHAIN_ID)
-        )
-        ?.breakdown.find((item) => item.chain.id === SEPOLIA_CHAIN_ID);
-      const availableBalanceOnSepolia = tokenBalanceOnSepolia
-        ? BigInt(tokenBalanceOnSepolia.balance.replace('.', ''))
-        : BigInt(0);
-
-      if (availableBalanceOnSepolia < debt) {
-        const tokenBalance = unifiedBalance?.find(
-          (asset) => asset.symbol === token
-        );
-        const availableBalance = tokenBalance
-          ? BigInt(tokenBalance.balance.replace('.', ''))
-          : BigInt(0);
-
-        if (availableBalance < debt) {
-          throw new Error(
-            `Insufficient ${token} balance. You have ${availableBalance} but need ${debt.toString()}`
-          );
-        }
-
-        return await nexus.bridgeAndExecute({
-          amount: debt.toString(),
-          toChainId: SEPOLIA_CHAIN_ID,
-          token: token,
-          execute: {
-            contractAbi: SPLIT_MANAGER_ABI,
-            functionName: 'payDebt',
-            contractAddress: process.env
-              .NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS as `0x${string}`,
-            buildFunctionParams: () => {
-              return {
-                functionParams: [splitId, creditor, debt],
-                ...(token === 'ETH' ? { value: debt.toString() } : {}),
-              };
-            },
-            ...(token !== 'ETH'
-              ? {
-                  tokenApproval: {
-                    token: token,
-                    amount: debt.toString(),
-                  },
-                }
-              : {}),
-          },
-          waitForReceipt: true,
+      if (token !== 'ETH') {
+        const allowance = await publicClient?.readContract({
+          address: getTokenAddress(token) as `0x${string}`,
+          abi: erc20Abi,
+          functionName: 'allowance',
+          args: [
+            address as `0x${string}`,
+            process.env.NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS as `0x${string}`,
+          ],
         });
-      } else {
-        if (token === 'USDC') {
-          const allowance = await publicClient?.readContract({
+        if (allowance && allowance < debt) {
+          const approveHash = await walletClient.data.writeContract({
             address: getTokenAddress(token) as `0x${string}`,
             abi: erc20Abi,
-            functionName: 'allowance',
+            functionName: 'approve',
             args: [
-              address as `0x${string}`,
               process.env.NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS as `0x${string}`,
+              debt,
             ],
+            chain: sepolia,
           });
-          if (allowance && allowance < debt) {
-            writeContractApprove({
-              address: getTokenAddress(token) as `0x${string}`,
-              abi: erc20Abi,
-              functionName: 'approve',
-              args: [
-                process.env.NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS as `0x${string}`,
-                debt,
-              ],
-            });
-            if (isSuccessApprove) {
-              writeContractPay({
-                address: process.env
-                  .NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS as `0x${string}`,
-                abi: SPLIT_MANAGER_ABI,
-                functionName: 'payDebt',
-                args: [splitId, creditor as `0x${string}`, debt],
-              });
-            }
-          }
+
+          await publicClient?.waitForTransactionReceipt({
+            hash: approveHash,
+          });
         }
       }
+
+      const payDebtHash = await walletClient.data.writeContract({
+        address: process.env
+          .NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS as `0x${string}`,
+        abi: SPLIT_MANAGER_ABI,
+        functionName: 'payDebt',
+        args: [splitId, creditor as `0x${string}`, debt],
+        value: token === 'ETH' ? debt : undefined,
+        chain: sepolia,
+      });
+
+      const receipt = await publicClient?.waitForTransactionReceipt({
+        hash: payDebtHash,
+      });
+
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ['debtorDebts', splitId.toString(), address],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['splitDetails', splitId.toString()],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['splitSpendings', splitId.toString()],
+        }),
+      ]);
+
+      return receipt;
     } catch (error) {
       console.error('Error paying debt:', error);
       setError(
@@ -277,6 +183,85 @@ export function useGetNexus() {
     setMyIntents(intents);
   };
 
+  const checkBalanceAndPlan = useCallback(
+    async (debt: bigint, token: string): Promise<string> => {
+      try {
+        if (!unifiedBalance) {
+          await getUnifiedBalance();
+        }
+
+        if (!unifiedBalance) {
+          return 'Unable to fetch balance information. Please try again.';
+        }
+
+        const tokenBalance = unifiedBalance.find(
+          (balance) => balance.symbol.toLowerCase() === token.toLowerCase()
+        );
+
+        const sepoliaBalance = tokenBalance?.breakdown.find(
+          (item) => item.chain.id === 11155111
+        );
+
+        const balanceInWei = BigInt(
+          sepoliaBalance?.balance.replace('.', '') || '0'
+        );
+        const hasEnoughOnSepolia = sepoliaBalance && balanceInWei >= debt;
+
+        if (hasEnoughOnSepolia) {
+          return `You have sufficient ${token} balance on Sepolia to pay this debt. No bridging required.`;
+        }
+
+        const otherChainsBalances = unifiedBalance.filter(
+          (balance) =>
+            balance.symbol.toLowerCase() === token.toLowerCase() &&
+            balance.breakdown.some((item) => item.chain.id !== 11155111)
+        );
+
+        if (otherChainsBalances.length === 0) {
+          const totalBalance = unifiedBalance
+            .filter((balance) =>
+              balance.breakdown.some((item) => item.chain.id !== 11155111)
+            )
+            .reduce((sum, balance) => sum + BigInt(balance.balance), BigInt(0));
+
+          if (totalBalance < debt) {
+            return `Insufficient ${token} balance across all chains. You need ${debt.toString()} but have ${totalBalance.toString()}.`;
+          }
+        }
+
+        const chainsWithBalances = otherChainsBalances
+          .map((balance) => balance.breakdown.map((item) => item.chain.id))
+          .flat();
+        const availableChains = chainsWithBalances
+          .map((chain) => CHAIN_NAMES[chain as keyof typeof CHAIN_NAMES])
+          .join(', ');
+
+        const {
+          intent: {
+            fees: { total: feeAmount },
+          },
+        } = await getBridgeFees(
+          token as SUPPORTED_TOKENS,
+          debt.toString(),
+          11155111
+        );
+
+        return (
+          `You need to bridge ${token} from one of these chains: ${availableChains} to Sepolia.\n\n` +
+          `Bridge Details:\n` +
+          `• Amount: ${formatUnits(debt, getTokenDecimals(token))} ${token}\n` +
+          `• Destination: Sepolia\n` +
+          `• Estimated Fee: ${feeAmount}\n\n` +
+          `After bridging, you'll be able to pay the debt.`
+        );
+      } catch (error) {
+        console.error('Error checking balance and planning:', error);
+        return 'Error checking balance. Please try again.';
+      }
+    },
+    [unifiedBalance, nexus]
+  );
+
   return {
     nexus,
     isInitialized,
@@ -285,12 +270,12 @@ export function useGetNexus() {
     unifiedBalance,
     getUnifiedBalance,
     initSDK,
-    simulateBridgeAndExecute,
     payDebt,
     bridge,
     getBridgeFees,
     isInitializationLoading,
     myIntents,
     getMyIntents,
+    checkBalanceAndPlan,
   };
 }

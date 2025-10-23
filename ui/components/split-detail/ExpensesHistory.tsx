@@ -46,6 +46,7 @@ export function ExpensesHistory({
   const [expandedSpendingId, setExpandedSpendingId] = useState<string | null>(
     null
   );
+
   return (
     <Card>
       <CardHeader>
@@ -122,7 +123,7 @@ export function ExpensesHistory({
 
               return (
                 <div
-                  key={spending.id}
+                  key={spending.id.concat(spending.spendingId)}
                   className={`p-4 border rounded-lg ${
                     isPending
                       ? 'border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/10'

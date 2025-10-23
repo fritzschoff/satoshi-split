@@ -42,17 +42,6 @@ export function useSplitDetail(splitId: string) {
     });
 
   const {
-    writeContract: payDebtContract,
-    data: paymentHash,
-    isPending: isPayingDebt,
-    error: paymentError,
-  } = useWriteContract();
-  const { isLoading: isConfirmingPayment, isSuccess: isPaymentSuccess } =
-    useWaitForTransactionReceipt({
-      hash: paymentHash,
-    });
-
-  const {
     writeContract: removeMemberContract,
     data: removeMemberHash,
     isPending: isRemovingMember,
@@ -136,7 +125,6 @@ export function useSplitDetail(splitId: string) {
   useEffect(() => {
     if (
       isExpenseSuccess ||
-      isPaymentSuccess ||
       isRemoveMemberSuccess ||
       isRemoveSpendingSuccess ||
       isAddMemberToSpendingSuccess ||
@@ -148,7 +136,6 @@ export function useSplitDetail(splitId: string) {
     }
   }, [
     isExpenseSuccess,
-    isPaymentSuccess,
     isRemoveMemberSuccess,
     isRemoveSpendingSuccess,
     isAddMemberToSpendingSuccess,
@@ -166,23 +153,6 @@ export function useSplitDetail(splitId: string) {
       }
     }
   }, [isExpenseSuccess, splitManagerData.splitDetails.data]);
-
-  useEffect(() => {
-    if (isApprovalSuccess && pendingPayment) {
-      const { creditor, amount, isETH } = pendingPayment;
-      const amountInUnits = BigInt(amount);
-
-      payDebtContract({
-        address: SPLIT_CONTRACT_ADDRESS,
-        abi: SPLIT_MANAGER_ABI,
-        functionName: 'payDebt',
-        args: [BigInt(splitId), creditor as `0x${string}`, amountInUnits],
-        value: isETH ? amountInUnits : BigInt(0),
-      });
-
-      setPendingPayment(null);
-    }
-  }, [isApprovalSuccess, pendingPayment, payDebtContract, splitId, address]);
 
   const [tokenSymbol, tokenDecimals] = useMemo(
     () => [getTokenSymbol(defaultToken), getTokenDecimals(defaultToken)],
@@ -227,7 +197,7 @@ export function useSplitDetail(splitId: string) {
       const amountInUnits = parseUnits(expenseAmount, tokenDecimals);
 
       try {
-        const [gas, simulationResult] = await Promise.all([
+        const [gas] = await Promise.all([
           publicClient!.estimateGas({
             account: address,
             to: SPLIT_CONTRACT_ADDRESS,
@@ -391,14 +361,10 @@ export function useSplitDetail(splitId: string) {
     isConfirmingExpense,
     expenseError,
     isExpenseSuccess,
-    isPayingDebt,
     isApprovingExpense,
     isConfirmingApproval,
     approveError,
     isApprovalSuccess,
-    isConfirmingPayment,
-    paymentError,
-    isPaymentSuccess,
     isRemovingMember,
     isConfirmingRemoveMember,
     removeMemberError,

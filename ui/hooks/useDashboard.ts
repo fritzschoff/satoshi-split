@@ -28,6 +28,7 @@ export function useDashboard() {
     getBridgeFees,
     isInitializationLoading,
     myIntents,
+    getUnifiedBalance,
   } = useGetNexus();
 
   const isLoading = isLoadingActivity || isLoadingSplits || isLoadingBridge;
@@ -101,12 +102,12 @@ export function useDashboard() {
     setIsBridging(true);
     setBridgeError(null);
     try {
-      const result = await bridge(
+      await bridge(
         selectedToken,
         bridgeAmount,
-        destinationChainId
+        destinationChainId,
+        sourceChainId
       );
-      console.log(result);
       setBridgeAmount('');
       setSelectedToken(null);
       setSourceChainId(null);
@@ -262,5 +263,6 @@ export function useDashboard() {
     handleBridge,
     isInitializationLoading,
     myIntents,
+    getUnifiedBalance,
   };
 }

@@ -9,6 +9,7 @@ import { BridgeActivityCard } from '@/components/dashboard/BridgeActivityCard';
 import { SplitsList } from '@/components/dashboard/SplitsList';
 import { useDashboard } from '@/hooks/useDashboard';
 import { BridgeActivity } from '@/types/web3';
+import { useEffect } from 'react';
 
 export default function DashboardPage() {
   const {
@@ -35,7 +36,14 @@ export default function DashboardPage() {
     handleMaxAmount,
     handleBridge,
     isInitializationLoading,
+    getUnifiedBalance,
   } = useDashboard();
+
+  useEffect(() => {
+    if (isInitialized && !unifiedBalance) {
+      getUnifiedBalance();
+    }
+  }, [isInitialized]);
 
   if (!isConnected) {
     return (
