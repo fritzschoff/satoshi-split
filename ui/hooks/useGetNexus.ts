@@ -1,7 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAccount } from 'wagmi';
+import {
+  useAccount,
+  usePublicClient,
+  useWaitForTransactionReceipt,
+  useWalletClient,
+  useWriteContract,
+} from 'wagmi';
 import {
   useNexus,
   UserAsset,
@@ -12,8 +18,12 @@ import {
 } from '@avail-project/nexus-widgets';
 import { SPLIT_MANAGER_ABI } from '@/constants/contract-abi';
 import { Split } from '@/types/web3';
+import { erc20Abi } from 'viem';
+import { getTokenAddress } from '@/utils/token';
 
 export function useGetNexus() {
+  const { address } = useAccount();
+  const publicClient = usePublicClient();
   const [error, setError] = useState<Error | null>(null);
   const { isConnected, connector } = useAccount();
   const [unifiedBalance, setUnifiedBalance] = useState<UserAsset[] | null>(
@@ -27,6 +37,34 @@ export function useGetNexus() {
     sdk: nexus,
     isSdkInitialized: isInitialized,
   } = useNexus();
+
+  const {
+    writeContract: writeContractApprove,
+    data: hashApprove,
+    isPending: isPendingApprove,
+    error: errorApprove,
+  } = useWriteContract();
+  const {
+    isLoading: isConfirmingApprove,
+    isSuccess: isSuccessApprove,
+    data: receiptApprove,
+  } = useWaitForTransactionReceipt({
+    hash: hashApprove,
+  });
+
+  const {
+    writeContract: writeContractPay,
+    data: hashPay,
+    isPending: isPendingPay,
+    error: errorPay,
+  } = useWriteContract();
+  const {
+    isLoading: isConfirming,
+    isSuccess,
+    data: receiptPay,
+  } = useWaitForTransactionReceipt({
+    hash: hashPay,
+  });
 
   useEffect(() => {
     if (isInitialized && !myIntents) {
@@ -134,42 +172,96 @@ export function useGetNexus() {
   const payDebt = async (
     token: SUPPORTED_TOKENS,
     debt: bigint,
-    split: Split,
+    splitId: bigint,
     creditor: string
   ) => {
     try {
       const SEPOLIA_CHAIN_ID = 11155111;
 
-      const tokenBalance = unifiedBalance?.find(
-        (asset) => asset.symbol === token
-      );
+      const tokenBalanceOnSepolia = unifiedBalance
+        ?.find(
+          (asset) =>
+            asset.symbol === token &&
+            asset.breakdown.find((item) => item.chain.id === SEPOLIA_CHAIN_ID)
+        )
+        ?.breakdown.find((item) => item.chain.id === SEPOLIA_CHAIN_ID);
+      const availableBalanceOnSepolia = tokenBalanceOnSepolia
+        ? BigInt(tokenBalanceOnSepolia.balance.replace('.', ''))
+        : BigInt(0);
 
-      const debtAmount = Number(debt);
-      const availableBalance = tokenBalance
-        ? parseFloat(tokenBalance.balance)
-        : 0;
-
-      if (availableBalance < debtAmount) {
-        throw new Error(
-          `Insufficient ${token} balance. You have ${availableBalance} but need ${debtAmount}`
+      if (availableBalanceOnSepolia < debt) {
+        const tokenBalance = unifiedBalance?.find(
+          (asset) => asset.symbol === token
         );
-      }
+        const availableBalance = tokenBalance
+          ? BigInt(tokenBalance.balance.replace('.', ''))
+          : BigInt(0);
 
-      return await nexus.bridgeAndExecute({
-        amount: Number(debt),
-        toChainId: SEPOLIA_CHAIN_ID,
-        token: token,
-        execute: {
-          contractAbi: SPLIT_MANAGER_ABI,
-          functionName: 'payDebt',
-          contractAddress: process.env
-            .NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS as `0x${string}`,
-          buildFunctionParams: () => {
-            return { functionParams: [split.id, creditor, debt] };
+        if (availableBalance < debt) {
+          throw new Error(
+            `Insufficient ${token} balance. You have ${availableBalance} but need ${debt.toString()}`
+          );
+        }
+
+        return await nexus.bridgeAndExecute({
+          amount: debt.toString(),
+          toChainId: SEPOLIA_CHAIN_ID,
+          token: token,
+          execute: {
+            contractAbi: SPLIT_MANAGER_ABI,
+            functionName: 'payDebt',
+            contractAddress: process.env
+              .NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS as `0x${string}`,
+            buildFunctionParams: () => {
+              return {
+                functionParams: [splitId, creditor, debt],
+                ...(token === 'ETH' ? { value: debt.toString() } : {}),
+              };
+            },
+            ...(token !== 'ETH'
+              ? {
+                  tokenApproval: {
+                    token: token,
+                    amount: debt.toString(),
+                  },
+                }
+              : {}),
           },
-        },
-        waitForReceipt: true,
-      });
+          waitForReceipt: true,
+        });
+      } else {
+        if (token === 'USDC') {
+          const allowance = await publicClient?.readContract({
+            address: getTokenAddress(token) as `0x${string}`,
+            abi: erc20Abi,
+            functionName: 'allowance',
+            args: [
+              address as `0x${string}`,
+              process.env.NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS as `0x${string}`,
+            ],
+          });
+          if (allowance && allowance < debt) {
+            writeContractApprove({
+              address: getTokenAddress(token) as `0x${string}`,
+              abi: erc20Abi,
+              functionName: 'approve',
+              args: [
+                process.env.NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS as `0x${string}`,
+                debt,
+              ],
+            });
+            if (isSuccessApprove) {
+              writeContractPay({
+                address: process.env
+                  .NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS as `0x${string}`,
+                abi: SPLIT_MANAGER_ABI,
+                functionName: 'payDebt',
+                args: [splitId, creditor as `0x${string}`, debt],
+              });
+            }
+          }
+        }
+      }
     } catch (error) {
       console.error('Error paying debt:', error);
       setError(

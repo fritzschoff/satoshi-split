@@ -287,46 +287,6 @@ export function useSplitDetail(splitId: string) {
     }
   };
 
-  const handlePayDebt = async (
-    creditor: string,
-    amount: string,
-    isETH: boolean
-  ) => {
-    if (!splitManagerData.splitDetails.data || !address) return;
-
-    try {
-      const amountInUnits = BigInt(amount);
-
-      if (
-        defaultToken !== zeroAddress &&
-        allowance !== undefined &&
-        allowance < amountInUnits
-      ) {
-        setPendingPayment({ creditor, amount, isETH });
-
-        approve({
-          address: defaultToken as `0x${string}`,
-          abi: erc20Abi,
-          functionName: 'approve',
-          args: [SPLIT_CONTRACT_ADDRESS, amountInUnits],
-        });
-
-        return;
-      }
-
-      payDebtContract({
-        address: SPLIT_CONTRACT_ADDRESS,
-        abi: SPLIT_MANAGER_ABI,
-        functionName: 'payDebt',
-        args: [BigInt(splitId), creditor as `0x${string}`, amountInUnits],
-        value: isETH ? amountInUnits : BigInt(0),
-      });
-    } catch (err) {
-      console.error('Error paying debt:', err);
-      alert('Error paying debt. Please try again.');
-    }
-  };
-
   const handleMemberToggle = (member: string, checked: boolean) => {
     if (checked) {
       if (!selectedMembers.includes(member)) {
@@ -456,7 +416,6 @@ export function useSplitDetail(splitId: string) {
     addMemberError,
     isAddMemberSuccess,
     handleAddExpense,
-    handlePayDebt,
     handleMemberToggle,
     handleRemoveMember,
     handleRemoveSpending,

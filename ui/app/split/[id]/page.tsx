@@ -58,7 +58,6 @@ export default function SplitDetailPage({
     addMemberError,
     isAddMemberSuccess,
     handleAddExpense,
-    handlePayDebt,
     handleMemberToggle,
     handleRemoveMember,
     handleRemoveSpending,
@@ -158,7 +157,6 @@ export default function SplitDetailPage({
             isConfirmingPayment={isConfirmingPayment}
             paymentError={paymentError}
             isPaymentSuccess={isPaymentSuccess}
-            onPayDebt={handlePayDebt}
           />
         </div>
 

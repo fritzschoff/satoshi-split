@@ -39,10 +39,7 @@ export interface Debt {
   isPaid: boolean;
 }
 
-export interface DebtorDebts {
-  creditors: Address[];
-  amounts: bigint[];
-}
+export type DebtorDebts = [Address[], bigint[]];
 
 export function useSplitDetails(splitId: bigint | undefined) {
   return useQuery({
@@ -127,7 +124,7 @@ export function useDebtorDebts(
       });
       return result as unknown as DebtorDebts;
     },
-    enabled: !!(splitId && debtor),
+    enabled: splitId !== undefined && debtor !== undefined,
   });
 }
 

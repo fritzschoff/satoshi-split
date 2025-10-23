@@ -1,4 +1,8 @@
-import { TOKEN_SYMBOLS, TOKEN_DECIMALS } from '@/constants/tokens';
+import {
+  TOKEN_SYMBOLS,
+  TOKEN_DECIMALS,
+  TOKEN_ADDRESSES,
+} from '@/constants/tokens';
 
 export function getTokenSymbol(tokenAddress: string | undefined | null) {
   if (!tokenAddress) return '';
@@ -19,4 +23,8 @@ export function formatTokenAmount(amount: string | number, decimals: number) {
   return amountInNumber.toFixed(2) === '0.00'
     ? '<0.01'
     : amountInNumber.toFixed(2);
+}
+
+export function getTokenAddress(tokenSymbol: string) {
+  return TOKEN_ADDRESSES[tokenSymbol as keyof typeof TOKEN_ADDRESSES];
 }
