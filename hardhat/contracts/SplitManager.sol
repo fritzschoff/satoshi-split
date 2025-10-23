@@ -343,14 +343,16 @@ contract SplitManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
      * @notice Pay off a debt to a creditor
      * @param splitId The ID of the split
      * @param creditor The address of the creditor
+     * @param payForMember The address of the member to pay for
      * @param amount The amount to pay
      */
     function payDebt(
         uint256 splitId,
         address creditor,
+        address payForMember,
         uint256 amount
     ) external payable splitExists(splitId) {
-        Debt storage debt = debts[splitId][msg.sender][creditor];
+        Debt storage debt = debts[splitId][payForMember][creditor];
         require(debt.debtor != address(0), "No debt exists");
         require(!debt.isPaid, "Debt already paid");
         require(amount > 0 && amount <= debt.amount, "Invalid payment amount");
@@ -373,7 +375,7 @@ contract SplitManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
             debt.isPaid = true;
         }
         
-        emit DebtPaid(splitId, msg.sender, creditor, amount, token);
+        emit DebtPaid(splitId, payForMember, creditor, amount, token);
     }
 
     /**

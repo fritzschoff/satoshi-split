@@ -131,6 +131,7 @@ describe('SplitManager Integration Tests', async function () {
     await splitManagerAsAlice.write.payDebt([
       splitId,
       creator.account.address,
+      alice.account.address,
       parseUnits('100', 6),
     ]);
 
@@ -299,7 +300,12 @@ describe('SplitManager Integration Tests', async function () {
     });
 
     await splitManagerAsAlice.write.payDebt(
-      [splitId, creator.account.address, parseUnits('1', 18)],
+      [
+        splitId,
+        creator.account.address,
+        alice.account.address,
+        parseUnits('1', 18),
+      ],
       { value: parseUnits('1', 18) }
     );
 
@@ -1484,6 +1490,7 @@ describe('SplitManager Integration Tests', async function () {
     await splitManagerAsAlice.write.payDebt([
       splitId,
       creator.account.address,
+      alice.account.address,
       parseUnits('100', 6),
     ]);
 

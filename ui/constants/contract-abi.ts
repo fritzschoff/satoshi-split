@@ -736,6 +736,11 @@ export const SPLIT_MANAGER_ABI = [
         type: 'address',
       },
       {
+        internalType: 'address',
+        name: 'payForMember',
+        type: 'address',
+      },
+      {
         internalType: 'uint256',
         name: 'amount',
         type: 'uint256',

@@ -65,6 +65,14 @@ export function useGetNexus() {
     }
   };
 
+  const getAllowance = async () => {
+    return nexus.getAllowance(11155111, ['ETH', 'USDC']);
+  };
+
+  const setAllowance = async (amount: bigint) => {
+    return nexus.setAllowance(11155111, ['ETH', 'USDC'], amount);
+  };
+
   const getBridgeFees = async (
     token: SUPPORTED_TOKENS,
     amount: string,
@@ -146,7 +154,12 @@ export function useGetNexus() {
           .NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS as `0x${string}`,
         abi: SPLIT_MANAGER_ABI,
         functionName: 'payDebt',
-        args: [splitId, creditor as `0x${string}`, debt],
+        args: [
+          splitId,
+          creditor as `0x${string}`,
+          address as `0x${string}`,
+          debt,
+        ],
         value: token === 'ETH' ? debt : undefined,
         chain: sepolia,
       });
@@ -181,6 +194,53 @@ export function useGetNexus() {
     if (!nexus || !isInitialized) return [];
     const intents = await nexus.getMyIntents();
     setMyIntents(intents);
+  };
+
+  const bridgeAndExecute = async (
+    splitId: bigint,
+    creditor: string,
+    token: SUPPORTED_TOKENS,
+    amount: string
+  ) => {
+    const allowance = await getAllowance();
+    if (
+      allowance.find((item) => item.token === token)!.allowance < BigInt(amount)
+    ) {
+      await setAllowance(BigInt(amount));
+    }
+    return await nexus.bridgeAndExecute({
+      amount: Number(amount),
+      toChainId: 11155111 as SUPPORTED_CHAINS_IDS,
+      token: token,
+      execute: {
+        contractAddress: process.env
+          .NEXT_PUBLIC_SPLIT_CONTRACT_ADDRESS as `0x${string}`,
+        contractAbi: SPLIT_MANAGER_ABI,
+        functionName: 'payDebt',
+        buildFunctionParams: (token: SUPPORTED_TOKENS, amount: string) => {
+          return {
+            functionParams: [
+              splitId,
+              creditor,
+              address,
+              parseUnits(amount.replace('.', ''), 18).toString(),
+            ],
+            value:
+              token === 'ETH'
+                ? parseUnits(amount.replace('.', ''), 18).toString()
+                : undefined,
+          };
+        },
+        // ...(token !== 'ETH'
+        //   ? {
+        //       tokenApproval: {
+        //         token: token,
+        //         amount: amount,
+        //       },
+        //     }
+        //   : {}),
+      },
+    });
   };
 
   const checkBalanceAndPlan = useCallback(
@@ -277,5 +337,6 @@ export function useGetNexus() {
     myIntents,
     getMyIntents,
     checkBalanceAndPlan,
+    bridgeAndExecute,
   };
 }

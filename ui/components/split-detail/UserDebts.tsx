@@ -46,6 +46,7 @@ export function UserDebts({
     isInitialized,
     checkBalanceAndPlan,
     bridge,
+    bridgeAndExecute,
   } = useGetNexus();
   const [creditors, amounts] = debts || [];
 
@@ -88,16 +89,22 @@ export function UserDebts({
     };
   }, [isInitialized, amounts, creditors, defaultToken, checkBalanceAndPlan]);
 
-  const handleBridge = async (amount: string) => {
-    console.log(amount, defaultToken);
-    setIsBridging(true);
-    await bridge(
+  const handleBridge = async (amount: string, creditor: string) => {
+    const result = await bridgeAndExecute(
+      splitId,
+      creditor,
       getTokenSymbol(defaultToken) as SUPPORTED_TOKENS,
-      formatUnits(BigInt(amount), getTokenDecimals(defaultToken)),
-      sepolia.id
+      amount
     );
-    setIsBridging(false);
-    window.location.reload();
+    console.log(result);
+    // setIsBridging(true);
+    // await bridge(
+    //   getTokenSymbol(defaultToken) as SUPPORTED_TOKENS,
+    //   formatUnits(BigInt(amount), getTokenDecimals(defaultToken)),
+    //   sepolia.id
+    // );
+    // setIsBridging(false);
+    // window.location.reload();
   };
   return (
     <Card>
@@ -144,7 +151,7 @@ export function UserDebts({
         )}
 
         {!isInitialized && address && (
-          <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg flex items-center justify-between">
+          <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg flex flex-col items-center justify-between">
             <div>
               <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-2">
                 The payment system needs to be initialized before you can pay
@@ -180,11 +187,7 @@ export function UserDebts({
           </div>
         )}
 
-        {isInitialized &&
-        amounts &&
-        amounts.length > 0 &&
-        creditors &&
-        creditors.length > 0 ? (
+        {amounts && amounts.length > 0 && creditors && creditors.length > 0 ? (
           <div className="space-y-3">
             {creditors.map((creditor, index) => (
               <>
@@ -226,23 +229,28 @@ export function UserDebts({
                     >
                       {isPayingDebt || isConfirmingPayment
                         ? 'Paying...'
-                        : !isInitialized
-                        ? 'Initializing...'
                         : 'Pay Debt'}
                     </Button>
                   </div>
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">
                   {balancePlans[index] ||
-                    (amounts[index] ? 'Calculating payment plan...' : '')}
+                    (isInitialized
+                      ? amounts[index]
+                        ? 'Calculating payment plan...'
+                        : ''
+                      : '')}
                   {balancePlans[index]?.includes('You need to bridge') && (
                     <Button
                       isLoading={isBridging}
-                      disabled={isBridging}
+                      disabled={isBridging || !isInitialized}
                       size="sm"
                       className="mt-2"
                       onClick={() => {
-                        handleBridge(amounts[index]?.toString() || '0');
+                        handleBridge(
+                          amounts[index]?.toString() || '0',
+                          creditor
+                        );
                       }}
                     >
                       Bridge
