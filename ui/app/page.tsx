@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/Button';
 export default function Home() {
   return (
     <div className="container mx-auto px-4 py-16">
-      {/* Hero Section */}
       <div className="max-w-4xl mx-auto text-center space-y-8">
         <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 mb-4">
           <span className="text-white font-bold text-4xl">₿</span>
@@ -23,6 +22,29 @@ export default function Home() {
           bridge tokens and settle debts using Avail Nexus SDK.
         </p>
 
+        <div className="max-w-4xl mx-auto mt-24 text-center">
+          <h2 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">
+            Built With
+          </h2>
+          <div className="flex flex-wrap justify-center gap-6">
+            {[
+              'Hardhat 3',
+              'Envio',
+              'Avail Nexus SDK',
+              'RainbowKit',
+              'Wagmi',
+              'Next.js 15',
+            ].map((tech) => (
+              <span
+                key={tech}
+                className="px-6 py-3 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-700 dark:text-gray-300 font-medium"
+              >
+                {tech}
+              </span>
+            ))}
+          </div>
+        </div>
+
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
           <Link href="/dashboard">
             <Button size="lg" className="w-full sm:w-auto">
@@ -37,7 +59,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Features Section */}
       <div className="max-w-6xl mx-auto mt-24 grid md:grid-cols-3 gap-8">
         <div className="p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
           <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mb-4">
@@ -112,30 +133,6 @@ export default function Home() {
             Built on smart contracts with Hardhat 3. No centralized servers,
             full transparency.
           </p>
-        </div>
-      </div>
-
-      {/* Tech Stack */}
-      <div className="max-w-4xl mx-auto mt-24 text-center">
-        <h2 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">
-          Built With
-        </h2>
-        <div className="flex flex-wrap justify-center gap-6">
-          {[
-            'Hardhat 3',
-            'Envio',
-            'Avail Nexus SDK',
-            'RainbowKit',
-            'Wagmi',
-            'Next.js 15',
-          ].map((tech) => (
-            <span
-              key={tech}
-              className="px-6 py-3 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-700 dark:text-gray-300 font-medium"
-            >
-              {tech}
-            </span>
-          ))}
         </div>
       </div>
     </div>

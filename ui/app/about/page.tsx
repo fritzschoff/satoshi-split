@@ -8,31 +8,60 @@ export default function AboutPage() {
           About SatoshiSplit
         </h1>
         <p className="text-xl text-center text-gray-600 dark:text-gray-400 mb-12">
-          Cross-Chain Expense Splitting for the Decentralized Web
+          Cross-Chain Expense Splitting for decentralized friends
         </p>
 
-        {/* Project Description */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>For The Hackathon Judges</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <p className="text-blue-800 dark:text-blue-200 text-sm">
+                With SatoshiSplit I wanted to build a dApp that actually helps
+                you in a direct way. Its not another DEFI product that promises
+                you 50% yield. Its a simple but effective dApp that makes things
+                just easier for you and your friends. Plus it is free, no pay
+                wall, no ads no BS.
+              </p>
+            </div>
+
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                GitHub Repository:{' '}
+                <code className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">
+                  https://github.com/fritzschoff/satoshi-split
+                </code>
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                Documentation: check out the README.md in the repository
+              </p>
+            </div>
+          </CardContent>
+        </Card>
         <Card className="mb-8">
           <CardHeader>
             <CardTitle>What is SatoshiSplit?</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-gray-700 dark:text-gray-300">
             <p>
-              SatoshiSplit is a decentralized application that brings the
-              convenience of Splitwise to the blockchain era. Split expenses
-              with friends across multiple chains while maintaining full
-              transparency and control over your funds.
+              Share your expesnes with your friends and dont worry about the
+              math and the chains which your friends are on. The contract lives
+              on Sepolia, but you can have your money on any chain you want and
+              pay your debt with one button click. It also allows you to track
+              your spending history and your friends' spending history. Also you
+              can add or remove friends later on or add people later to an
+              expense.
             </p>
             <p>
-              Unlike traditional expense-splitting apps, SatoshiSplit leverages
-              blockchain technology to create immutable records of all
-              transactions, eliminates centralized intermediaries, and enables
-              cross-chain settlements through Avail Nexus SDK.
+              Thanks to Envio for indexing all the events and lets you have a
+              understading where you money went. Thanks to Hardhat and their
+              Smart Contract development suite for making it easy to develop and
+              deploy the contract. Thanks for Nexus Avail SDK for making it easy
+              to bridge tokens across chains.
             </p>
           </CardContent>
         </Card>
-
-        {/* How It Works */}
         <Card className="mb-8">
           <CardHeader>
             <CardTitle>How It Works</CardTitle>
@@ -49,8 +78,8 @@ export default function AboutPage() {
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400">
                     Connect your wallet and create a new split group. Add your
-                    friends' wallet addresses and choose a default token (ETH,
-                    USDC, or USDT).
+                    friends' wallet addresses and choose a default token (ETH or
+                    USDC).
                   </p>
                 </div>
               </div>
@@ -106,8 +135,6 @@ export default function AboutPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Technologies Used */}
         <Card className="mb-8">
           <CardHeader>
             <CardTitle>Technologies Used</CardTitle>
@@ -116,7 +143,6 @@ export default function AboutPage() {
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                  <span className="text-blue-600 dark:text-blue-400">⚡</span>
                   Hardhat 3
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -128,9 +154,6 @@ export default function AboutPage() {
 
               <div>
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                  <span className="text-purple-600 dark:text-purple-400">
-                    📊
-                  </span>
                   Envio
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -142,7 +165,6 @@ export default function AboutPage() {
 
               <div>
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                  <span className="text-green-600 dark:text-green-400">🌉</span>
                   Avail Nexus SDK
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -154,9 +176,6 @@ export default function AboutPage() {
 
               <div>
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                  <span className="text-indigo-600 dark:text-indigo-400">
-                    🎨
-                  </span>
                   RainbowKit & Next.js 15
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -168,8 +187,6 @@ export default function AboutPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Supported Chains & Tokens */}
         <Card className="mb-8">
           <CardHeader>
             <CardTitle>Supported Chains & Tokens</CardTitle>
@@ -186,8 +203,6 @@ export default function AboutPage() {
                     'Optimism Sepolia',
                     'Base Sepolia',
                     'Arbitrum Sepolia',
-                    'Polygon zkEVM Cardona',
-                    'Avalanche Fuji',
                   ].map((chain) => (
                     <span
                       key={chain}
@@ -204,7 +219,7 @@ export default function AboutPage() {
                   Tokens Supported
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {['ETH', 'USDC', 'USDT'].map((token) => (
+                  {['ETH', 'USDC'].map((token) => (
                     <span
                       key={token}
                       className="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full text-sm font-mono"
@@ -217,114 +232,6 @@ export default function AboutPage() {
                   All tokens are supported across chains via Avail Nexus SDK
                 </p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Architecture */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Architecture Overview</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg">
-              <div className="space-y-3 text-sm font-mono">
-                <div>
-                  📱{' '}
-                  <span className="text-blue-600 dark:text-blue-400">
-                    Frontend (Next.js + RainbowKit)
-                  </span>
-                </div>
-                <div className="ml-6">↓ User interactions</div>
-                <div>
-                  ⚡{' '}
-                  <span className="text-purple-600 dark:text-purple-400">
-                    Smart Contracts (Sepolia)
-                  </span>
-                </div>
-                <div className="ml-6">↓ Emit events</div>
-                <div>
-                  📊{' '}
-                  <span className="text-green-600 dark:text-green-400">
-                    Envio Indexer (Multi-chain)
-                  </span>
-                </div>
-                <div className="ml-6">↓ Query data</div>
-                <div>
-                  💾{' '}
-                  <span className="text-orange-600 dark:text-orange-400">
-                    GraphQL API
-                  </span>
-                </div>
-                <div className="ml-6">↓ Display on UI</div>
-                <div>
-                  🎯{' '}
-                  <span className="text-indigo-600 dark:text-indigo-400">
-                    Dashboard & Analytics
-                  </span>
-                </div>
-              </div>
-            </div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">
-              All components work together to provide a seamless cross-chain
-              expense splitting experience with real-time updates and
-              comprehensive tracking.
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* For Judges */}
-        <Card>
-          <CardHeader>
-            <CardTitle>For Hackathon Judges</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                Key Innovation
-              </h3>
-              <p className="text-blue-800 dark:text-blue-200 text-sm">
-                SatoshiSplit demonstrates practical use of cross-chain
-                infrastructure (Avail Nexus) combined with comprehensive event
-                indexing (Envio) to solve a real-world problem (expense
-                splitting) in a decentralized manner.
-              </p>
-            </div>
-
-            <div className="space-y-2 text-gray-700 dark:text-gray-300 text-sm">
-              <p>
-                <strong>✅ Complete Implementation:</strong> Full-stack dApp
-                with smart contracts, tests, indexer, and responsive UI
-              </p>
-              <p>
-                <strong>✅ Multi-Chain:</strong> Supports 6+ testnets with
-                unified balance management
-              </p>
-              <p>
-                <strong>✅ Production-Ready:</strong> Comprehensive test
-                coverage (Solidity + TypeScript)
-              </p>
-              <p>
-                <strong>✅ User Experience:</strong> Server-side rendering,
-                wallet state persistence, intuitive interface
-              </p>
-              <p>
-                <strong>✅ Real-Time Data:</strong> Envio indexing provides
-                instant updates across all chains
-              </p>
-            </div>
-
-            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                📂 GitHub Repository:{' '}
-                <code className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">
-                  satoshi-split/
-                </code>
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                📝 Documentation: Complete README with setup instructions in the
-                repository
-              </p>
             </div>
           </CardContent>
         </Card>

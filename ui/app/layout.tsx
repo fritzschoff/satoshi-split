@@ -55,9 +55,6 @@ export default function RootLayout({
           <div className="min-h-screen flex flex-col">
             <Header />
             <main className="flex-1">{children}</main>
-            <footer className="py-6 px-4 text-center text-sm text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-800">
-              <p>Built with Hardhat, Envio, Avail Nexus SDK & RainbowKit</p>
-            </footer>
           </div>
         </Providers>
       </body>

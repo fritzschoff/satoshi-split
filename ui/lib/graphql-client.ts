@@ -1,7 +1,7 @@
 import { GraphQLClient } from 'graphql-request';
 
 const ENVIO_GRAPHQL_URL =
-  process.env.NEXT_PUBLIC_ENVIO_GRAPHQL_URL_PROD || 'NOT FOUND';
+  process.env.NEXT_PUBLIC_ENVIO_GRAPHQL_URL || 'NOT FOUND';
 
 export const graphqlClient = new GraphQLClient(ENVIO_GRAPHQL_URL);
 
