@@ -128,7 +128,7 @@ export function UserDebts({ splitId, defaultToken }: UserDebtsProps) {
         )} */}
 
         {!isInitialized && address && (
-          <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg flex items-center justify-between">
+          <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg flex flex-col items-center justify-between">
             <div>
               <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-2">
                 The payment system needs to be initialized before you can pay
@@ -164,11 +164,7 @@ export function UserDebts({ splitId, defaultToken }: UserDebtsProps) {
           </div>
         )}
 
-        {isInitialized &&
-        amounts &&
-        amounts.length > 0 &&
-        creditors &&
-        creditors.length > 0 ? (
+        {amounts && amounts.length > 0 && creditors && creditors.length > 0 ? (
           <div className="space-y-3">
             {creditors.map((creditor, index) => (
               <>
@@ -208,11 +204,7 @@ export function UserDebts({ splitId, defaultToken }: UserDebtsProps) {
                       isLoading={isPayingDebt}
                       disabled={isPayingDebt}
                     >
-                      {isPayingDebt
-                        ? 'Paying...'
-                        : !isInitialized
-                        ? 'Initializing...'
-                        : 'Pay Debt'}
+                      {isPayingDebt ? 'Paying...' : 'Pay Debt'}
                     </Button>
                   </div>
                 </div>
