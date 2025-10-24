@@ -4,9 +4,8 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
   usePublicClient,
-  useReadContract,
 } from 'wagmi';
-import { zeroAddress, parseUnits, encodeFunctionData, erc20Abi } from 'viem';
+import { zeroAddress, parseUnits, encodeFunctionData } from 'viem';
 import { SPLIT_MANAGER_ABI } from '@/constants/contract-abi';
 import { simulateContract } from 'viem/actions';
 import { getTokenSymbol, getTokenDecimals } from '@/utils/token';
@@ -24,11 +23,6 @@ export function useSplitDetail(splitId: string) {
   const [expenseAmount, setExpenseAmount] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [hasInitializedMembers, setHasInitializedMembers] = useState(false);
-  const [pendingPayment, setPendingPayment] = useState<{
-    creditor: string;
-    amount: string;
-    isETH: boolean;
-  } | null>(null);
 
   const {
     writeContract: addExpense,
@@ -93,27 +87,6 @@ export function useSplitDetail(splitId: string) {
 
   const defaultToken =
     splitManagerData.splitDetails.data?.defaultToken || zeroAddress;
-
-  const { data: allowance } = useReadContract({
-    address: defaultToken as `0x${string}`,
-    abi: erc20Abi,
-    functionName: 'allowance',
-    args: [address as `0x${string}`, SPLIT_CONTRACT_ADDRESS],
-    query: {
-      enabled: !!address && defaultToken !== zeroAddress,
-    },
-  });
-
-  const {
-    writeContract: approve,
-    data: approveHash,
-    isPending: isApprovingExpense,
-    error: approveError,
-  } = useWriteContract();
-  const { isLoading: isConfirmingApproval, isSuccess: isApprovalSuccess } =
-    useWaitForTransactionReceipt({
-      hash: approveHash,
-    });
 
   useEffect(() => {
     if (splitManagerData.splitDetails.data && !hasInitializedMembers) {
@@ -361,10 +334,6 @@ export function useSplitDetail(splitId: string) {
     isConfirmingExpense,
     expenseError,
     isExpenseSuccess,
-    isApprovingExpense,
-    isConfirmingApproval,
-    approveError,
-    isApprovalSuccess,
     isRemovingMember,
     isConfirmingRemoveMember,
     removeMemberError,

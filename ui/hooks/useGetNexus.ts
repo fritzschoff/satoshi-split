@@ -27,6 +27,7 @@ export function useGetNexus() {
     null
   );
   const [myIntents, setMyIntents] = useState<RFF[] | null>(null);
+  const [isPayingDebt, setIsPayingDebt] = useState(false);
   const [isInitializationLoading, setIsInitializationLoading] = useState(false);
   const {
     setProvider,
@@ -108,6 +109,7 @@ export function useGetNexus() {
     splitId: bigint,
     creditor: string
   ) => {
+    setIsPayingDebt(true);
     try {
       if (!walletClient.data) {
         throw new Error('Wallet client not available');
@@ -274,6 +276,7 @@ export function useGetNexus() {
     bridge,
     getBridgeFees,
     isInitializationLoading,
+    isPayingDebt,
     myIntents,
     getMyIntents,
     checkBalanceAndPlan,

@@ -18,24 +18,9 @@ import { formatUnits } from 'viem';
 interface UserDebtsProps {
   splitId: bigint;
   defaultToken: string;
-  isPayingDebt: boolean;
-  isConfirmingPayment: boolean;
-  approveError: Error | null;
-  isApprovalSuccess: boolean;
-  paymentError: Error | null;
-  isPaymentSuccess: boolean;
 }
 
-export function UserDebts({
-  splitId,
-  defaultToken,
-  isPayingDebt,
-  isConfirmingPayment,
-  approveError,
-  isApprovalSuccess,
-  paymentError,
-  isPaymentSuccess,
-}: UserDebtsProps) {
+export function UserDebts({ splitId, defaultToken }: UserDebtsProps) {
   const { address } = useAccount();
   const { data: debts } = useDebtorDebts(splitId, address);
   const [isBridging, setIsBridging] = useState(false);
@@ -46,9 +31,9 @@ export function UserDebts({
     isInitialized,
     checkBalanceAndPlan,
     bridge,
+    isPayingDebt,
   } = useGetNexus();
   const [creditors, amounts] = debts || [];
-
   const [balancePlans, setBalancePlans] = useState<string[]>([]);
 
   useEffect(() => {
@@ -89,7 +74,6 @@ export function UserDebts({
   }, [isInitialized, amounts, creditors, defaultToken, checkBalanceAndPlan]);
 
   const handleBridge = async (amount: string) => {
-    console.log(amount, defaultToken);
     setIsBridging(true);
     await bridge(
       getTokenSymbol(defaultToken) as SUPPORTED_TOKENS,
@@ -105,7 +89,7 @@ export function UserDebts({
         <CardTitle>Your Debts</CardTitle>
       </CardHeader>
       <CardContent>
-        {approveError && (
+        {/* {approveError && (
           <div
             className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg max-h-40 overflow-y-auto"
             style={{ wordBreak: 'break-word', whiteSpace: 'pre-line' }}
@@ -141,7 +125,7 @@ export function UserDebts({
               Debt payment successful!
             </p>
           </div>
-        )}
+        )} */}
 
         {!isInitialized && address && (
           <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg flex items-center justify-between">
@@ -221,10 +205,10 @@ export function UserDebts({
                           creditor
                         )
                       }
-                      isLoading={isPayingDebt || isConfirmingPayment}
-                      disabled={isPayingDebt || isConfirmingPayment}
+                      isLoading={isPayingDebt}
+                      disabled={isPayingDebt}
                     >
-                      {isPayingDebt || isConfirmingPayment
+                      {isPayingDebt
                         ? 'Paying...'
                         : !isInitialized
                         ? 'Initializing...'

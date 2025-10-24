@@ -35,12 +35,6 @@ export default function SplitDetailPage({
     isConfirmingExpense,
     expenseError,
     isExpenseSuccess,
-    isPayingDebt,
-    approveError,
-    isApprovalSuccess,
-    isConfirmingPayment,
-    paymentError,
-    isPaymentSuccess,
     isRemovingMember,
     isConfirmingRemoveMember,
     removeMemberError,
@@ -148,16 +142,7 @@ export default function SplitDetailPage({
             onAddMember={handleAddMember}
           />
 
-          <UserDebts
-            splitId={BigInt(id)}
-            defaultToken={defaultToken}
-            isPayingDebt={isPayingDebt}
-            approveError={approveError}
-            isApprovalSuccess={isApprovalSuccess}
-            isConfirmingPayment={isConfirmingPayment}
-            paymentError={paymentError}
-            isPaymentSuccess={isPaymentSuccess}
-          />
+          <UserDebts splitId={BigInt(id)} defaultToken={defaultToken} />
         </div>
 
         <div className="mb-8">
